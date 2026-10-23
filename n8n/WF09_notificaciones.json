@@ -71,8 +71,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -102,8 +102,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -133,8 +133,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -159,7 +159,7 @@
           },
           "conditions": [
             {
-              "id": "a625739c-b7c1-4433-9bbd-9ae149f40a79",
+              "id": "f9ebbe52-8eff-4d2b-8743-fa3e652e3150",
               "leftValue": "={{ $json.valida }}",
               "rightValue": "",
               "operator": {
@@ -169,7 +169,7 @@
               }
             },
             {
-              "id": "7413fb50-980a-42de-af4e-7a5c8cbe3ae6",
+              "id": "f80fec85-dd48-4837-a14a-c63a6a2e5716",
               "leftValue": "={{ $json.duplicada }}",
               "rightValue": "",
               "operator": {
@@ -387,8 +387,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -400,7 +400,7 @@
           },
           "conditions": [
             {
-              "id": "69dc7c62-613a-4abc-b30b-a5fa119419fa",
+              "id": "c699b82a-6a13-44ec-bf2d-2378ae104885",
               "leftValue": "={{ $('Resolver destinatarios').first().json.email }}",
               "rightValue": "",
               "operator": {
@@ -627,8 +627,8 @@
         -200
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -640,7 +640,7 @@
           },
           "conditions": [
             {
-              "id": "e2a75ecc-6971-4dbf-83d9-db06edd192cf",
+              "id": "8bc24027-2606-4b52-9ca1-109e32210474",
               "leftValue": "={{ $('Resolver destinatarios').first().json.chat_id }}",
               "rightValue": "",
               "operator": {
@@ -866,8 +866,8 @@
         200
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {

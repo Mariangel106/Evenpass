@@ -59,7 +59,7 @@
           },
           "conditions": [
             {
-              "id": "e3f90319-0d4c-48d0-bc1a-d74dc10b4a0d",
+              "id": "f2f228cd-e32d-443b-9cf5-d217fa4545a5",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -110,8 +110,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -141,8 +141,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -172,8 +172,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -188,7 +188,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "07a4518b-690f-4b27-864b-8d08bf7506de",
+                    "id": "4e491d0e-0361-4218-be1d-f2d24bdfaee9",
                     "leftValue": "={{ $('Validar datos').first().json.accion }}",
                     "rightValue": "crear",
                     "operator": {
@@ -211,7 +211,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "f35c89df-bd17-41d7-9f88-06cc5ab42cd8",
+                    "id": "56bbce7f-df28-4aec-b7c9-2ac03a69e595",
                     "leftValue": "={{ $('Validar datos').first().json.accion }}",
                     "rightValue": "perfil",
                     "operator": {
@@ -234,7 +234,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "31ef4605-d422-44f4-bf25-04bde937ed77",
+                    "id": "5cf75a5d-f71a-42c1-8044-d6b9b66a8bc3",
                     "leftValue": "={{ $('Validar datos').first().json.accion }}",
                     "rightValue": "actualizar",
                     "operator": {
@@ -257,7 +257,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "508a1b8d-6e3b-4527-930c-575513593d62",
+                    "id": "b07bf56d-6e18-44e6-921d-d7915153ad31",
                     "leftValue": "={{ $('Validar datos').first().json.accion }}",
                     "rightValue": "desactivar",
                     "operator": {
@@ -419,8 +419,8 @@
         600
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -445,7 +445,7 @@
           },
           "conditions": [
             {
-              "id": "2bbad5d1-56ef-4fbc-8ecb-e4d88fb68c61",
+              "id": "9123b825-e784-423f-a050-09d07c35f808",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -608,8 +608,8 @@
         -400
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -716,8 +716,8 @@
         -400
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -759,7 +759,7 @@
           },
           "conditions": [
             {
-              "id": "7b4b0898-9115-4c53-8843-dab3a78f31b7",
+              "id": "d778dcd3-9cc1-4827-a2c6-8a4e3ed09e0c",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -822,7 +822,7 @@
           },
           "conditions": [
             {
-              "id": "a63b2da4-4806-4a9d-9559-b7b9f4744f72",
+              "id": "4a089e65-f4ae-427d-b3ab-181ab1b7c874",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -968,8 +968,8 @@
         400
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1076,8 +1076,8 @@
         400
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1119,7 +1119,7 @@
           },
           "conditions": [
             {
-              "id": "f04499d2-1206-4993-a091-2557a229f7e0",
+              "id": "f56e9977-5ed5-45b0-9da1-4feae5a4416e",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -1263,8 +1263,8 @@
         800
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1371,8 +1371,8 @@
         800
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {

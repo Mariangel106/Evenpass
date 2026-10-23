@@ -59,7 +59,7 @@
           },
           "conditions": [
             {
-              "id": "50913480-f4dc-477a-9186-4ec524a59f05",
+              "id": "78d78089-6508-48d9-b85e-a803d645a54b",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -110,8 +110,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -141,8 +141,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -172,8 +172,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -198,7 +198,7 @@
           },
           "conditions": [
             {
-              "id": "ef151395-3441-41bc-a715-711ed6a6bd8b",
+              "id": "f75b8eda-38f2-4dfd-8344-0e98a30b319d",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -337,8 +337,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -480,8 +480,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -543,7 +543,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "88051b5c-3002-4a58-999a-d214c32373b8",
+                    "id": "be8238cd-9541-40a0-ad9c-edbbf6889b01",
                     "leftValue": "={{ $json.tipo }}",
                     "rightValue": "VINCULAR",
                     "operator": {
@@ -566,7 +566,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "5f0fcebf-f5a9-43bb-a5dc-032f22487c56",
+                    "id": "f023f708-47cb-4bb5-845d-108ba63da41f",
                     "leftValue": "={{ $json.tipo }}",
                     "rightValue": "AYUDA",
                     "operator": {
@@ -589,7 +589,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "791c4157-5c2e-40db-871e-584d468283ba",
+                    "id": "ee84bd99-b24d-46b6-aa00-b543f7169ae1",
                     "leftValue": "={{ $json.tipo }}",
                     "rightValue": "OTRO",
                     "operator": {
@@ -662,8 +662,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -693,8 +693,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -722,7 +722,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "0c5768ab-6a2d-44de-8564-6832c8e5ca4f",
+                    "id": "bd9c16cf-87ad-4736-bd86-0552aab0994b",
                     "leftValue": "={{ $json.resultado }}",
                     "rightValue": "OK",
                     "operator": {
@@ -745,7 +745,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "2da3968c-baa6-44bc-b605-3ae7389a13e5",
+                    "id": "be53e888-3fd8-47c5-a9c4-87ceeaeeda72",
                     "leftValue": "={{ $json.resultado }}",
                     "rightValue": "EXPIRADO",
                     "operator": {
@@ -768,7 +768,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "50465616-cd66-4845-84f5-7f4071fb4760",
+                    "id": "cc42b27c-3104-4bbe-b53b-1c02201b6520",
                     "leftValue": "={{ $json.resultado }}",
                     "rightValue": "USADO",
                     "operator": {
@@ -791,7 +791,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "28c76300-15f5-42dc-b437-85845a695f88",
+                    "id": "3e4ad74b-0711-4b6d-9ce3-778632289e56",
                     "leftValue": "={{ $json.resultado }}",
                     "rightValue": "INVALIDO",
                     "operator": {
@@ -929,8 +929,8 @@
         600
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1046,8 +1046,8 @@
         600
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1154,8 +1154,8 @@
         600
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
       "executeOnce": true
     },
     {
@@ -1287,8 +1287,8 @@
         1000
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1317,7 +1317,7 @@
           },
           "conditions": [
             {
-              "id": "430560ca-fc6f-44ee-a39f-0f9e8d1ebb82",
+              "id": "fb9af12c-0f4f-4f6b-8bc8-388e5558b409",
               "leftValue": "={{ $json.vinculacion_id }}",
               "rightValue": "",
               "operator": {

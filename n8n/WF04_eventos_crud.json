@@ -346,7 +346,7 @@
           },
           "conditions": [
             {
-              "id": "40011293-66a5-47ea-840e-11fcdbd851b1",
+              "id": "28c41c2c-4ac0-4f2a-af8c-9cf37235a2af",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -397,8 +397,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -428,8 +428,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -444,7 +444,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "e56024e2-5378-4f15-b94a-56255d2af507",
+                    "id": "28b1de8c-539b-4d6f-84da-bbadf7a1cb5d",
                     "leftValue": "={{ $('Validar formulario').first().json.accion }}",
                     "rightValue": "CREAR",
                     "operator": {
@@ -467,7 +467,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "bf5790c6-a492-48f4-948e-1ce3e03db84a",
+                    "id": "000bcfc2-8027-497d-b5ae-757f3d4904d4",
                     "leftValue": "={{ $('Validar formulario').first().json.accion }}",
                     "rightValue": "CONSULTAR",
                     "operator": {
@@ -490,7 +490,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "e09f87e7-df76-4c6f-b6ce-4fdae38b3502",
+                    "id": "0bbe2596-ad6a-408b-b842-03b9f5bff63c",
                     "leftValue": "={{ $('Validar formulario').first().json.accion }}",
                     "rightValue": "ACTUALIZAR",
                     "operator": {
@@ -513,7 +513,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "206d55a8-34a1-4064-a213-70187075fefd",
+                    "id": "40779d4e-c2af-4de3-bf4c-be5303ef27d3",
                     "leftValue": "={{ $('Validar formulario').first().json.accion }}",
                     "rightValue": "ESTADO",
                     "operator": {
@@ -773,8 +773,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -881,8 +881,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -923,7 +923,7 @@
           },
           "conditions": [
             {
-              "id": "87681e63-69fc-421e-8929-9ec9848b1608",
+              "id": "d674c9a6-c2c3-42fc-a6c7-6cb7fe7b4df6",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -985,7 +985,7 @@
           },
           "conditions": [
             {
-              "id": "fb1081fd-2fc3-4382-b10d-1f3a6c947668",
+              "id": "21cd9f1d-0eee-4292-a02b-099a6e21778f",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -1208,8 +1208,8 @@
         800
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1316,8 +1316,8 @@
         800
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1342,7 +1342,7 @@
           },
           "conditions": [
             {
-              "id": "7600a530-448d-4f4d-bbdd-c696bbcb49f1",
+              "id": "079d4277-d672-413a-87cd-6f157dc0ff0c",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -1557,8 +1557,8 @@
         1200
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1665,8 +1665,8 @@
         1200
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -1691,7 +1691,7 @@
           },
           "conditions": [
             {
-              "id": "4461d4b6-de69-48d2-a4ed-b483db52d461",
+              "id": "9796f4a9-9af7-440b-83eb-cbb854f536d8",
               "leftValue": "={{ $json.usuario_id }}",
               "rightValue": "",
               "operator": {

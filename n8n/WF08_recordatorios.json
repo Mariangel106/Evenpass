@@ -65,8 +65,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -78,7 +78,7 @@
           },
           "conditions": [
             {
-              "id": "e88d96ce-51e5-4acf-89f9-f7ef4de99f06",
+              "id": "44644884-d617-41b5-affa-d4a00c3a71e2",
               "leftValue": "={{ $json.estado }}",
               "rightValue": "PUBLICADO",
               "operator": {
@@ -144,8 +144,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -175,8 +175,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -206,8 +206,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -232,7 +232,7 @@
           },
           "conditions": [
             {
-              "id": "37d225fa-4dd7-4003-9795-c479f78b4278",
+              "id": "8c94d464-a75b-4c6f-a170-e6c6ceada1cc",
               "leftValue": "={{ $json.enviar }}",
               "rightValue": "",
               "operator": {
@@ -453,8 +453,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

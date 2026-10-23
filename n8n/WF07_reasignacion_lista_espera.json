@@ -65,8 +65,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -78,7 +78,7 @@
           },
           "conditions": [
             {
-              "id": "8cd23eb7-fff8-447a-b429-3a18a9d840b8",
+              "id": "d173c64d-3374-4070-b08a-0fca41168bf9",
               "leftValue": "={{ $json.estado }}",
               "rightValue": "PUBLICADO",
               "operator": {
@@ -144,8 +144,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -338,8 +338,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -527,8 +527,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

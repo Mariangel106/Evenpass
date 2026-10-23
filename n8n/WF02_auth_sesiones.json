@@ -59,7 +59,7 @@
           },
           "conditions": [
             {
-              "id": "22cc2c5c-b4c6-4f37-a04d-e3ae50a4350d",
+              "id": "8df017de-dc2c-40b8-8252-9336c9ce34fc",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -110,8 +110,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -141,8 +141,8 @@
       "executeOnce": true,
       "alwaysOutputData": true,
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -157,7 +157,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "222cfff3-08fc-412c-a438-564b3f0ac305",
+                    "id": "77b1fb3b-7c78-4e93-81e5-63b59e661317",
                     "leftValue": "={{ $('Validar solicitud').first().json.accion }}",
                     "rightValue": "login",
                     "operator": {
@@ -180,7 +180,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "5ac14092-fdf6-4077-a654-c6b53ebd5e81",
+                    "id": "3762d278-e109-45c5-8cae-8efc1931883c",
                     "leftValue": "={{ $('Validar solicitud').first().json.accion }}",
                     "rightValue": "logout",
                     "operator": {
@@ -203,7 +203,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "4dcb5d3f-18c1-4046-94b8-10c9c19a4916",
+                    "id": "fd1f2c7a-db90-4858-a682-85ad802d4e9a",
                     "leftValue": "={{ $('Validar solicitud').first().json.accion }}",
                     "rightValue": "validar",
                     "operator": {
@@ -270,7 +270,7 @@
           },
           "conditions": [
             {
-              "id": "4ac798db-605c-49ba-b9f9-43b26985e362",
+              "id": "f5a64385-c91c-4627-b116-e7b12aff64d7",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -433,8 +433,8 @@
         -400
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -476,7 +476,7 @@
           },
           "conditions": [
             {
-              "id": "debd9cb5-3c12-459e-86f5-7ecddc09eff5",
+              "id": "f1fa76e7-0b35-4abf-8458-b0ec234471f2",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -620,8 +620,8 @@
         0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -666,7 +666,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "8002a3bd-7ab4-4e14-be58-8fc1cf8633a6",
+                    "id": "fcf9d3c3-726a-4e9a-8d72-7ba54f7b29c7",
                     "leftValue": "={{ $json.resultado }}",
                     "rightValue": "VALIDA",
                     "operator": {
@@ -689,7 +689,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "678368d6-4fea-42eb-80fc-7cf64f67ff6a",
+                    "id": "dcf7dc5d-e29c-4a53-b0ff-af0bccdd3ed8",
                     "leftValue": "={{ $json.resultado }}",
                     "rightValue": "EXPIRADA",
                     "operator": {
@@ -712,7 +712,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "0aa2da09-f2d4-4a5b-834c-928ce5ac6c23",
+                    "id": "877cc4eb-6bc5-43fe-a917-5591f071028f",
                     "leftValue": "={{ $json.resultado }}",
                     "rightValue": "INVALIDA",
                     "operator": {
@@ -859,8 +859,8 @@
         300.0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -982,8 +982,8 @@
         500.0
       ],
       "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 3000
+      "maxTries": 5,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
