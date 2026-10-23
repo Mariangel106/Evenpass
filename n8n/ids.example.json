@@ -1,0 +1,13 @@
+{
+  "EP01_Usuarios": "ID_DEL_SPREADSHEET",
+  "EP02_Sesiones": "ID_DEL_SPREADSHEET",
+  "EP03_Telegram": "ID_DEL_SPREADSHEET",
+  "EP04_Eventos": "ID_DEL_SPREADSHEET",
+  "EP05_Catalogo_Log": "ID_DEL_SPREADSHEET",
+  "EP06_Inscripciones": "ID_DEL_SPREADSHEET",
+  "EP07_Reasignaciones": "ID_DEL_SPREADSHEET",
+  "EP08_Recordatorios": "ID_DEL_SPREADSHEET",
+  "EP09_Notificaciones": "ID_DEL_SPREADSHEET",
+  "EP10_Soporte": "ID_DEL_SPREADSHEET",
+  "WF09": "ID_DEL_WORKFLOW_WF09_EN_N8N"
+}

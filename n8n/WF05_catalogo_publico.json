@@ -1,0 +1,536 @@
+{
+  "name": "WF05 — Catálogo público",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WF05 — Catálogo público\n**Trigger:** Webhook `GET /webhook/ep/catalogo`\n\n`tipo`: LISTADO · DETALLE (`evento_id`) · FILTRO (`categoria`, `grupo_edad`).\n\nCupos = capacidad − inscripciones CONFIRMADAS (nunca un valor manual). Oculta BORRADOR. Cada consulta queda en **EP05_Catalogo_Log**.",
+        "height": 220,
+        "width": 600,
+        "color": 7
+      },
+      "id": "ff8f0115-71a7-5208-ab80-e517ddc4992e",
+      "name": "Nota WF05",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "ep/catalogo",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "cea1607d-04dc-554a-b36d-d02ac8df89bc",
+      "name": "Webhook Catálogo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "8ab45c0c-11cf-576a-933e-e98f7813ecce"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\nconst q = $input.first().json.query || {};\nconst tipo = norm(q.tipo || 'LISTADO').toUpperCase();\nconst consulta = {\n  tipo,\n  evento_id: norm(q.evento_id).toUpperCase(),\n  categoria: norm(q.categoria),\n  grupo_edad: norm(q.grupo_edad),\n  visitor_id: norm(q.visitor_id).slice(0, 64) || 'anonimo',\n};\nif (!['LISTADO', 'DETALLE', 'FILTRO'].includes(tipo)) {\n  return fallo(400, 'Tipo de consulta no soportado. Usa LISTADO, DETALLE o FILTRO.', { consulta });\n}\nif (tipo === 'DETALLE' && !consulta.evento_id) return fallo(400, 'Falta el evento_id.', { consulta });\nif (tipo === 'FILTRO' && !consulta.categoria && !consulta.grupo_edad) return fallo(400, 'Indica una categoría o un grupo de edad.', { consulta });\nreturn [{ json: { ok: true, ...consulta } }];\n"
+      },
+      "id": "24108000-c069-5871-a939-f83799995caf",
+      "name": "Validar consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "64bd95e8-2d4b-4803-8b99-97ee3b30d30e",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d9c6c1dc-d481-54c4-b8b7-b2609e6158ce",
+      "name": "¿Consulta válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP04_EVENTOS_ID__",
+          "mode": "id",
+          "cachedResultName": "EP04_Eventos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Eventos",
+          "mode": "name",
+          "cachedResultName": "Eventos"
+        },
+        "options": {}
+      },
+      "id": "94759725-ac64-501d-aef9-fb7653bfaa22",
+      "name": "Leer Eventos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        780,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "761450a4-230f-4ca3-92ec-5042ebbb08b4",
+              "leftValue": "={{ $json.evento_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "df24ad33-f201-4e73-a4d6-a14e8a0ae0a9",
+              "leftValue": "={{ $json.estado }}",
+              "rightValue": "BORRADOR",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d89e7f37-826f-55c6-b977-db1b648285ac",
+      "name": "Solo eventos publicables",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "eventos",
+        "options": {}
+      },
+      "id": "599edaae-ca4b-5c74-895f-3e9421deb90b",
+      "name": "Agrupar eventos",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Inscripciones"
+        },
+        "options": {}
+      },
+      "id": "60b69683-a68a-5cd4-a6ca-47be71c8360e",
+      "name": "Leer Inscripciones",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1560,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// --- Utilidades de eventos e inscripciones ------------------------------\nconst ZONA_HORARIA = '-05:00'; // Hora de Colombia\nfunction inicioEvento(evento) {\n  const [h = '00', m = '00'] = norm(evento.hora).split(':');\n  return new Date(`${norm(evento.fecha)}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00${ZONA_HORARIA}`);\n}\nconst ESTADOS_ACTIVOS = ['CONFIRMADA', 'LISTA_ESPERA'];\nfunction confirmadasDe(inscripciones, eventoId) {\n  return inscripciones.filter((i) => i.evento_id === eventoId && i.estado === 'CONFIRMADA').length;\n}\nfunction listaEsperaDe(inscripciones, eventoId) {\n  return inscripciones\n    .filter((i) => i.evento_id === eventoId && i.estado === 'LISTA_ESPERA')\n    .sort((a, b) => norm(a.fecha_inscripcion).localeCompare(norm(b.fecha_inscripcion)));\n}\nconst fechaLegible = (evento) => {\n  const d = inicioEvento(evento);\n  if (isNaN(d)) return `${evento.fecha} ${evento.hora}`;\n  return d.toLocaleString('es-CO', {\n    timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',\n  });\n};\nconst c = $('Validar consulta').first().json;\nconst eventos = ($('Agrupar eventos').first().json.eventos || []).filter((e) => e && e.evento_id);\nconst inscripciones = filas('Leer Inscripciones');\nconst ahoraMs = Date.now();\n\nconst publico = (e) => {\n  const capacidad = Number(e.capacidad) || 0;\n  const confirmadas = confirmadasDe(inscripciones, e.evento_id);\n  const enEspera = listaEsperaDe(inscripciones, e.evento_id).length;\n  const cupos = Math.max(0, capacidad - confirmadas);\n  const inicio = inicioEvento(e);\n  let disponibilidad;\n  if (e.estado === 'CANCELADO') disponibilidad = 'CANCELADO';\n  else if (e.estado === 'CERRADO') disponibilidad = 'CERRADO';\n  else if (inicio.getTime() <= ahoraMs) disponibilidad = 'FINALIZADO';\n  else if (cupos > 0) disponibilidad = 'DISPONIBLE';\n  else disponibilidad = 'LLENO';\n  return {\n    evento_id: e.evento_id,\n    nombre: e.nombre,\n    categoria: e.categoria,\n    grupo_edad: e.grupo_edad,\n    descripcion: e.descripcion,\n    fecha: e.fecha,\n    hora: e.hora,\n    inicio: isNaN(inicio) ? null : inicio.toISOString(),\n    lugar: e.lugar,\n    imagen_url: e.imagen_url,\n    organizador: e.organizador,\n    estado: e.estado,\n    motivo_estado: e.motivo_estado || '',\n    capacidad,\n    inscritos_confirmados: confirmadas,\n    lista_espera: enEspera,\n    cupos_disponibles: cupos,\n    disponibilidad,\n    acepta_inscripciones: e.estado === 'PUBLICADO' && inicio.getTime() > ahoraMs,\n  };\n};\n\nlet lista = eventos.map(publico).sort((a, b) => String(a.inicio).localeCompare(String(b.inicio)));\nconst categorias = [...new Set(lista.map((e) => e.categoria))].sort();\nlet status = 200;\nlet body;\nif (c.tipo === 'DETALLE') {\n  const e = lista.find((x) => x.evento_id === c.evento_id);\n  if (e) body = { ok: true, tipo: c.tipo, evento: e };\n  else { status = 404; body = { ok: false, error: 'Ese evento no existe o no está publicado.' }; }\n  lista = e ? [e] : [];\n} else {\n  if (c.tipo === 'FILTRO') {\n    lista = lista.filter((e) => (!c.categoria || e.categoria === c.categoria) && (!c.grupo_edad || e.grupo_edad === c.grupo_edad));\n  }\n  body = { ok: true, tipo: c.tipo, total: lista.length, categorias, eventos: lista };\n}\nreturn [{ json: { status, body, resultado_count: lista.length } }];\n"
+      },
+      "id": "cf9c67fd-0b60-53a2-b5dc-a9aacdb38362",
+      "name": "Calcular cupos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
+      },
+      "id": "150285e8-c5cb-555e-b765-19a9f213d5af",
+      "name": "Responder catálogo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// Se ejecuta para respuestas exitosas y para rechazos.\nlet c;\ntry { c = $('Validar consulta').first().json; } catch (e) { c = {}; }\nconst consulta = c.consulta || c;\nconst r = $input.first().json;\nreturn [{ json: {\n  consulta_id: nuevoId('CON'),\n  fecha: ahora(),\n  tipo: consulta.tipo || 'DESCONOCIDO',\n  evento_id: consulta.evento_id || '',\n  categoria: [consulta.categoria, consulta.grupo_edad].filter(Boolean).join(' / '),\n  resultado_count: String(r.resultado_count ?? 0),\n  visitor_id: consulta.visitor_id || 'anonimo',\n  status_http: String(r.status),\n} }];\n"
+      },
+      "id": "5adb78da-682c-5aca-bd57-6bf62561f673",
+      "name": "Preparar registro de consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP05_CATALOGO_LOG_ID__",
+          "mode": "id",
+          "cachedResultName": "EP05_Catalogo_Log"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Consultas_Catalogo",
+          "mode": "name",
+          "cachedResultName": "Consultas_Catalogo"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta_id": "={{ $json.consulta_id }}",
+            "fecha": "={{ $json.fecha }}",
+            "tipo": "={{ $json.tipo }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "categoria": "={{ $json.categoria }}",
+            "resultado_count": "={{ $json.resultado_count }}",
+            "visitor_id": "={{ $json.visitor_id }}",
+            "status_http": "={{ $json.status_http }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta_id",
+              "displayName": "consulta_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "tipo",
+              "displayName": "tipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resultado_count",
+              "displayName": "resultado_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "visitor_id",
+              "displayName": "visitor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status_http",
+              "displayName": "status_http",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "useAppend": true
+        }
+      },
+      "id": "d6a5f797-3e41-5e30-9720-0b1b2c5506dd",
+      "name": "Registrar consulta",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2600,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
+      },
+      "id": "1ca777da-4be0-5fb4-9bc5-9a0d3aada206",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Catálogo": {
+      "main": [
+        [
+          {
+            "node": "Validar consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar consulta": {
+      "main": [
+        [
+          {
+            "node": "¿Consulta válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Consulta válida?": {
+      "main": [
+        [
+          {
+            "node": "Leer Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Eventos": {
+      "main": [
+        [
+          {
+            "node": "Solo eventos publicables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo eventos publicables": {
+      "main": [
+        [
+          {
+            "node": "Agrupar eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar eventos": {
+      "main": [
+        [
+          {
+            "node": "Leer Inscripciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Inscripciones": {
+      "main": [
+        [
+          {
+            "node": "Calcular cupos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular cupos": {
+      "main": [
+        [
+          {
+            "node": "Responder catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder catálogo": {
+      "main": [
+        [
+          {
+            "node": "Preparar registro de consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar registro de consulta": {
+      "main": [
+        [
+          {
+            "node": "Registrar consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder error": {
+      "main": [
+        [
+          {
+            "node": "Preparar registro de consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

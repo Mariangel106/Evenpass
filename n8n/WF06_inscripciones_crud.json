@@ -1,0 +1,2187 @@
+{
+  "name": "WF06 — Inscripciones CRUD",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WF06 — Inscripciones CRUD\n**Trigger:** Webhook `POST /webhook/ep/inscripciones`\n\n`accion`: `crear` · `listar` · `actualizar` · `cancelar`\n\nIdempotencia: `usuario_id + evento_id` nunca tiene dos inscripciones activas. Con cupo → CONFIRMADA, sin cupo → LISTA_ESPERA. Notifica por WF09. Persistencia: **EP06_Inscripciones**.",
+        "height": 220,
+        "width": 620,
+        "color": 7
+      },
+      "id": "c100ace6-3513-541e-9d54-7ddccb5ec5f9",
+      "name": "Nota WF06",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ep/inscripciones",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "0e200b3d-b6c7-5de8-b192-de0e151ba6a2",
+      "name": "Webhook Inscripciones",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "9daca86c-0bd9-5faf-b299-21bb5ac95041"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\nconst b = $input.first().json.body || {};\nconst accion = norm(b.accion).toLowerCase();\nif (!['crear', 'listar', 'actualizar', 'cancelar'].includes(accion)) {\n  return fallo(400, 'Operación no soportada. Usa crear, listar, actualizar o cancelar.');\n}\nconst d = {\n  ok: true,\n  accion,\n  session_token: norm(b.session_token),\n  evento_id: norm(b.evento_id).toUpperCase(),\n  inscripcion_id: norm(b.inscripcion_id).toUpperCase(),\n  nombre_acreditacion: norm(b.nombre_acreditacion).replace(/\\s+/g, ' ').slice(0, 80),\n  observaciones: norm(b.observaciones).slice(0, 300),\n};\nif (!d.session_token) return fallo(401, 'Inicia sesión para continuar.');\nif (accion === 'crear' && !d.evento_id) return fallo(400, 'Falta el evento.');\nif (['actualizar', 'cancelar'].includes(accion) && !d.inscripcion_id) return fallo(400, 'Falta la inscripción.');\nreturn [{ json: d }];\n"
+      },
+      "id": "65adb5b2-c690-5f04-912e-d9f7cad39d60",
+      "name": "Validar solicitud",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "395e1b7a-eb8a-437a-b0e4-048f5aa2d475",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bbccd900-be82-5ab7-be86-401964d33d7a",
+      "name": "¿Solicitud válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP02_SESIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP02_Sesiones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sesiones",
+          "mode": "name",
+          "cachedResultName": "Sesiones"
+        },
+        "options": {}
+      },
+      "id": "5e045904-3deb-5dba-b217-dd1c6f875f63",
+      "name": "Leer Sesiones",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        780,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP01_USUARIOS_ID__",
+          "mode": "id",
+          "cachedResultName": "EP01_Usuarios"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Usuarios",
+          "mode": "name",
+          "cachedResultName": "Usuarios"
+        },
+        "options": {}
+      },
+      "id": "929b5978-ad80-5390-a6c5-cebb6f4926d4",
+      "name": "Leer Usuarios",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1040,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Vinculaciones",
+          "mode": "name",
+          "cachedResultName": "Vinculaciones"
+        },
+        "options": {}
+      },
+      "id": "31594207-713f-5966-9339-4d2dd538f61e",
+      "name": "Leer Vinculación Telegram",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1300,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP04_EVENTOS_ID__",
+          "mode": "id",
+          "cachedResultName": "EP04_Eventos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Eventos",
+          "mode": "name",
+          "cachedResultName": "Eventos"
+        },
+        "options": {}
+      },
+      "id": "d005c6b6-08a9-5b34-b25c-2dd6aadc5da3",
+      "name": "Leer Eventos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1560,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Inscripciones"
+        },
+        "options": {}
+      },
+      "id": "1971fd3b-508b-5b76-ac93-bce8581cc6f1",
+      "name": "Leer Inscripciones",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1820,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// --- Validación de sesión (lee EP02 Sesiones y EP01 Usuarios) -------------\n// Una sesión no es válida si no existe, está cerrada, expiró o su usuario está INACTIVO.\nfunction resolverSesion(token) {\n  const t = norm(token);\n  if (!t) return { ok: false, status: 401, error: 'Inicia sesión para continuar.' };\n  const sesion = filas('Leer Sesiones').find((s) => s.session_token === t);\n  if (!sesion) return { ok: false, status: 401, error: 'Tu sesión no es válida. Inicia sesión de nuevo.' };\n  if (sesion.estado !== 'ACTIVA') return { ok: false, status: 401, error: 'Tu sesión fue cerrada. Inicia sesión de nuevo.' };\n  if (new Date(sesion.expira_en).getTime() <= Date.now()) {\n    return { ok: false, status: 401, error: 'Tu sesión expiró. Inicia sesión de nuevo.' };\n  }\n  const usuario = filas('Leer Usuarios').find((u) => u.usuario_id === sesion.usuario_id);\n  if (!usuario || usuario.estado !== 'ACTIVO') {\n    return { ok: false, status: 403, error: 'Esta cuenta está inactiva.' };\n  }\n  return { ok: true, sesion, usuario };\n}\nconst s = resolverSesion($('Validar solicitud').first().json.session_token);\nif (!s.ok) return fallo(s.status, s.error);\nreturn [{ json: { ok: true, usuario_id: s.usuario.usuario_id, nombre: s.usuario.nombre } }];\n"
+      },
+      "id": "f4224107-57f8-5899-81df-8125d8052125",
+      "name": "Validar sesión y usuario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "533a0dc7-9398-4dd3-9652-c087f1f3821c",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f92285a3-4028-5be2-be7c-4e1571dba092",
+      "name": "¿Sesión válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "2d9760a5-db3b-44df-ad21-bd466aa105fc",
+                    "leftValue": "={{ $('Validar solicitud').first().json.accion }}",
+                    "rightValue": "crear",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "crear"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "edd6f3d6-ebc3-44b3-99d5-f8451ac07dd8",
+                    "leftValue": "={{ $('Validar solicitud').first().json.accion }}",
+                    "rightValue": "listar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "listar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "31ba4d7e-531b-49b2-952e-434e98a04f2e",
+                    "leftValue": "={{ $('Validar solicitud').first().json.accion }}",
+                    "rightValue": "actualizar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "actualizar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "6ae9a3bc-d873-4387-8dcb-2536e29c0ab4",
+                    "leftValue": "={{ $('Validar solicitud').first().json.accion }}",
+                    "rightValue": "cancelar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancelar"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5aa5ede5-2a2b-55d8-a8c0-d255610c50d5",
+      "name": "Según operación",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        2600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
+      },
+      "id": "0f4389a9-11c0-5b19-85a5-a8e03e8e8743",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().filter((i) => i.json.auditoria).map((i) => ({ json: i.json.auditoria }));\n"
+      },
+      "id": "428734b5-86f0-5eed-856c-ebe084db5f24",
+      "name": "¿Auditar rechazo?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Auditoria_Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Auditoria_Inscripciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "auditoria_id": "={{ $json.auditoria_id }}",
+            "inscripcion_id": "={{ $json.inscripcion_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "accion": "={{ $json.accion }}",
+            "estado_anterior": "={{ $json.estado_anterior }}",
+            "estado_nuevo": "={{ $json.estado_nuevo }}",
+            "fecha": "={{ $json.fecha }}",
+            "resultado": "={{ $json.resultado }}",
+            "detalle": "={{ $json.detalle }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "auditoria_id",
+              "displayName": "auditoria_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_anterior",
+              "displayName": "estado_anterior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_nuevo",
+              "displayName": "estado_nuevo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resultado",
+              "displayName": "resultado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "useAppend": true
+        }
+      },
+      "id": "6aae609e-24c4-5210-b4fc-9aeb0f0440be",
+      "name": "Auditar rechazo",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2080,
+        600
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// --- Utilidades de eventos e inscripciones ------------------------------\nconst ZONA_HORARIA = '-05:00'; // Hora de Colombia\nfunction inicioEvento(evento) {\n  const [h = '00', m = '00'] = norm(evento.hora).split(':');\n  return new Date(`${norm(evento.fecha)}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00${ZONA_HORARIA}`);\n}\nconst ESTADOS_ACTIVOS = ['CONFIRMADA', 'LISTA_ESPERA'];\nfunction confirmadasDe(inscripciones, eventoId) {\n  return inscripciones.filter((i) => i.evento_id === eventoId && i.estado === 'CONFIRMADA').length;\n}\nfunction listaEsperaDe(inscripciones, eventoId) {\n  return inscripciones\n    .filter((i) => i.evento_id === eventoId && i.estado === 'LISTA_ESPERA')\n    .sort((a, b) => norm(a.fecha_inscripcion).localeCompare(norm(b.fecha_inscripcion)));\n}\nconst fechaLegible = (evento) => {\n  const d = inicioEvento(evento);\n  if (isNaN(d)) return `${evento.fecha} ${evento.hora}`;\n  return d.toLocaleString('es-CO', {\n    timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',\n  });\n};\nconst auditar = (ins, accion, estado_anterior, estado_nuevo, resultado, detalle) => ({\n  auditoria_id: nuevoId('AUDI'), inscripcion_id: ins.inscripcion_id || '', usuario_id: ins.usuario_id || '', evento_id: ins.evento_id || '',\n  accion, estado_anterior, estado_nuevo, fecha: ahora(), resultado, detalle,\n});\nconst d = $('Validar solicitud').first().json;\nconst u = $('Validar sesión y usuario').first().json;\nconst base = { usuario_id: u.usuario_id, evento_id: d.evento_id };\nconst rechazar = (status, motivo) => fallo(status, motivo, { auditoria: auditar(base, 'CREAR', '', '', 'RECHAZADO', motivo) });\n\nconst telegram = filas('Leer Vinculación Telegram').find((v) => v.usuario_id === u.usuario_id && v.estado === 'ACTIVA');\nif (!telegram) return rechazar(409, 'Vincula tu cuenta de Telegram desde tu perfil antes de inscribirte.');\nconst evento = filas('Leer Eventos').find((e) => e.evento_id === d.evento_id);\nif (!evento) return rechazar(404, 'Ese evento no existe.');\nif (evento.estado !== 'PUBLICADO') {\n  const motivo = { CANCELADO: 'fue cancelado', CERRADO: 'cerró sus inscripciones', BORRADOR: 'aún no está publicado' }[evento.estado] || 'no está disponible';\n  return rechazar(409, `Este evento ${motivo}.`);\n}\nif (inicioEvento(evento).getTime() <= Date.now()) return rechazar(409, 'Este evento ya empezó; las inscripciones están cerradas.');\n// Idempotencia: usuario_id + evento_id no puede tener dos inscripciones activas.\nconst activa = filas('Leer Inscripciones').find((i) => i.usuario_id === u.usuario_id && i.evento_id === d.evento_id && ESTADOS_ACTIVOS.includes(i.estado));\nif (activa) {\n  return fallo(409, 'Ya tienes una inscripción activa en este evento.', {\n    body: { ok: false, error: 'Ya tienes una inscripción activa en este evento.', inscripcion: { inscripcion_id: activa.inscripcion_id, estado: activa.estado } },\n    auditoria: auditar({ ...base, inscripcion_id: activa.inscripcion_id }, 'CREAR', activa.estado, activa.estado, 'DUPLICADO', 'Intento de inscripción duplicada'),\n  });\n}\nreturn [{ json: { ok: true } }];\n"
+      },
+      "id": "35cafe1c-55fe-5d86-a83a-91d057dab201",
+      "name": "Validaciones de negocio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "9384b78f-7091-4314-b0f2-f30a11bb7092",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a85288c5-bc6d-5403-b3bc-4a97a3c52036",
+      "name": "¿Puede inscribirse?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// --- Utilidades de eventos e inscripciones ------------------------------\nconst ZONA_HORARIA = '-05:00'; // Hora de Colombia\nfunction inicioEvento(evento) {\n  const [h = '00', m = '00'] = norm(evento.hora).split(':');\n  return new Date(`${norm(evento.fecha)}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00${ZONA_HORARIA}`);\n}\nconst ESTADOS_ACTIVOS = ['CONFIRMADA', 'LISTA_ESPERA'];\nfunction confirmadasDe(inscripciones, eventoId) {\n  return inscripciones.filter((i) => i.evento_id === eventoId && i.estado === 'CONFIRMADA').length;\n}\nfunction listaEsperaDe(inscripciones, eventoId) {\n  return inscripciones\n    .filter((i) => i.evento_id === eventoId && i.estado === 'LISTA_ESPERA')\n    .sort((a, b) => norm(a.fecha_inscripcion).localeCompare(norm(b.fecha_inscripcion)));\n}\nconst fechaLegible = (evento) => {\n  const d = inicioEvento(evento);\n  if (isNaN(d)) return `${evento.fecha} ${evento.hora}`;\n  return d.toLocaleString('es-CO', {\n    timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',\n  });\n};\nconst auditar = (ins, accion, estado_anterior, estado_nuevo, resultado, detalle) => ({\n  auditoria_id: nuevoId('AUDI'), inscripcion_id: ins.inscripcion_id || '', usuario_id: ins.usuario_id || '', evento_id: ins.evento_id || '',\n  accion, estado_anterior, estado_nuevo, fecha: ahora(), resultado, detalle,\n});\nconst d = $('Validar solicitud').first().json;\nconst u = $('Validar sesión y usuario').first().json;\nconst evento = filas('Leer Eventos').find((e) => e.evento_id === d.evento_id);\nconst inscripciones = filas('Leer Inscripciones');\nconst confirmadas = confirmadasDe(inscripciones, evento.evento_id);\nconst capacidad = Number(evento.capacidad) || 0;\nconst hayCupo = confirmadas < capacidad;\nconst enEspera = listaEsperaDe(inscripciones, evento.evento_id).length;\nconst fecha = ahora();\nconst ins = {\n  inscripcion_id: nuevoId('INS'),\n  usuario_id: u.usuario_id,\n  evento_id: evento.evento_id,\n  estado: hayCupo ? 'CONFIRMADA' : 'LISTA_ESPERA',\n  fecha_inscripcion: fecha,\n  fecha_actualizacion: fecha,\n  nombre_acreditacion: d.nombre_acreditacion || u.nombre,\n  observaciones: d.observaciones,\n  origen: 'WEB',\n  orden_espera: hayCupo ? '' : String(enEspera + 1),\n};\nconst cuando = fechaLegible(evento);\nconst notificacion = hayCupo\n  ? { tipo: 'INSCRIPCION_CONFIRMADA', titulo: `Cupo confirmado: ${evento.nombre}`,\n      mensaje: `Tu cupo está confirmado. Te esperamos el ${cuando} en ${evento.lugar}. Acreditación a nombre de ${ins.nombre_acreditacion}.` }\n  : { tipo: 'LISTA_ESPERA', titulo: `Estás en lista de espera: ${evento.nombre}`,\n      mensaje: `El evento está lleno. Quedaste de número ${ins.orden_espera} en la lista de espera. Si se libera un cupo te lo asignamos automáticamente y te avisamos.` };\nreturn [{ json: {\n  ...ins,\n  _auditoria: auditar(ins, 'CREAR', '', ins.estado, 'OK', hayCupo ? `Cupo ${confirmadas + 1} de ${capacidad}` : `Lista de espera, posición ${ins.orden_espera}`),\n  _respuesta: {\n    ok: true,\n    mensaje: hayCupo ? '¡Listo! Tu cupo está confirmado.' : 'El evento está lleno. Quedaste en lista de espera.',\n    inscripcion: { inscripcion_id: ins.inscripcion_id, evento_id: ins.evento_id, estado: ins.estado, orden_espera: ins.orden_espera, nombre_acreditacion: ins.nombre_acreditacion },\n  },\n  _notificacion: { usuario_id: ins.usuario_id, evento_id: ins.evento_id, inscripcion_id: ins.inscripcion_id, ...notificacion,\n    clave_idempotencia: `${notificacion.tipo}|${ins.inscripcion_id}` },\n} }];\n"
+      },
+      "id": "f521a585-8e97-5eb0-a610-bac42852967d",
+      "name": "Calcular cupos y estado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3380,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Inscripciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "inscripcion_id": "={{ $json.inscripcion_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "evento_id": "={{ $json.evento_id }}",
+            "estado": "={{ $json.estado }}",
+            "fecha_inscripcion": "={{ $json.fecha_inscripcion }}",
+            "fecha_actualizacion": "={{ $json.fecha_actualizacion }}",
+            "nombre_acreditacion": "={{ $json.nombre_acreditacion }}",
+            "observaciones": "={{ $json.observaciones }}",
+            "origen": "={{ $json.origen }}",
+            "orden_espera": "={{ $json.orden_espera }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_inscripcion",
+              "displayName": "fecha_inscripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_actualizacion",
+              "displayName": "fecha_actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nombre_acreditacion",
+              "displayName": "nombre_acreditacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "observaciones",
+              "displayName": "observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "origen",
+              "displayName": "origen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "orden_espera",
+              "displayName": "orden_espera",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "useAppend": true
+        }
+      },
+      "id": "8840e60d-d22f-5136-8805-249e5f95a25b",
+      "name": "Guardar inscripción",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3640,
+        -600
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Auditoria_Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Auditoria_Inscripciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "auditoria_id": "={{ $('Calcular cupos y estado').first().json._auditoria.auditoria_id }}",
+            "inscripcion_id": "={{ $('Calcular cupos y estado').first().json._auditoria.inscripcion_id }}",
+            "usuario_id": "={{ $('Calcular cupos y estado').first().json._auditoria.usuario_id }}",
+            "evento_id": "={{ $('Calcular cupos y estado').first().json._auditoria.evento_id }}",
+            "accion": "={{ $('Calcular cupos y estado').first().json._auditoria.accion }}",
+            "estado_anterior": "={{ $('Calcular cupos y estado').first().json._auditoria.estado_anterior }}",
+            "estado_nuevo": "={{ $('Calcular cupos y estado').first().json._auditoria.estado_nuevo }}",
+            "fecha": "={{ $('Calcular cupos y estado').first().json._auditoria.fecha }}",
+            "resultado": "={{ $('Calcular cupos y estado').first().json._auditoria.resultado }}",
+            "detalle": "={{ $('Calcular cupos y estado').first().json._auditoria.detalle }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "auditoria_id",
+              "displayName": "auditoria_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_anterior",
+              "displayName": "estado_anterior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_nuevo",
+              "displayName": "estado_nuevo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resultado",
+              "displayName": "resultado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "useAppend": true
+        }
+      },
+      "id": "eb50b1f5-95e6-5a27-b08e-b38f9ffcf1ba",
+      "name": "Auditar inscripción",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3900,
+        -600
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Calcular cupos y estado').first().json._respuesta) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "0d953f99-89f0-58d3-8240-a4acc7d359ee",
+      "name": "Responder inscripción",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4160,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Calcular cupos y estado').first().json._notificacion }];\n"
+      },
+      "id": "cd426b52-e16c-5de6-a23a-f9c103750e91",
+      "name": "Preparar notificación de inscripción",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4420,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "__WF09_NOTIFICACIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "WF09 — Servicio central de notificaciones"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "9333c792-944f-581b-8115-e7f3a27a4ffd",
+      "name": "Notificar inscripción (WF09)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        4680,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// --- Utilidades de eventos e inscripciones ------------------------------\nconst ZONA_HORARIA = '-05:00'; // Hora de Colombia\nfunction inicioEvento(evento) {\n  const [h = '00', m = '00'] = norm(evento.hora).split(':');\n  return new Date(`${norm(evento.fecha)}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00${ZONA_HORARIA}`);\n}\nconst ESTADOS_ACTIVOS = ['CONFIRMADA', 'LISTA_ESPERA'];\nfunction confirmadasDe(inscripciones, eventoId) {\n  return inscripciones.filter((i) => i.evento_id === eventoId && i.estado === 'CONFIRMADA').length;\n}\nfunction listaEsperaDe(inscripciones, eventoId) {\n  return inscripciones\n    .filter((i) => i.evento_id === eventoId && i.estado === 'LISTA_ESPERA')\n    .sort((a, b) => norm(a.fecha_inscripcion).localeCompare(norm(b.fecha_inscripcion)));\n}\nconst fechaLegible = (evento) => {\n  const d = inicioEvento(evento);\n  if (isNaN(d)) return `${evento.fecha} ${evento.hora}`;\n  return d.toLocaleString('es-CO', {\n    timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',\n  });\n};\nconst u = $('Validar sesión y usuario').first().json;\nconst inscripciones = filas('Leer Inscripciones');\nconst eventos = Object.fromEntries(filas('Leer Eventos').map((e) => [e.evento_id, e]));\nconst telegram = filas('Leer Vinculación Telegram').some((v) => v.usuario_id === u.usuario_id && v.estado === 'ACTIVA');\nconst propias = inscripciones\n  .filter((i) => i.usuario_id === u.usuario_id)\n  .map((i) => {\n    const e = eventos[i.evento_id] || {};\n    const posicion = i.estado === 'LISTA_ESPERA'\n      ? listaEsperaDe(inscripciones, i.evento_id).findIndex((x) => x.inscripcion_id === i.inscripcion_id) + 1\n      : null;\n    const inicio = e.evento_id ? inicioEvento(e) : null;\n    return {\n      inscripcion_id: i.inscripcion_id,\n      evento_id: i.evento_id,\n      estado: i.estado,\n      fecha_inscripcion: i.fecha_inscripcion,\n      nombre_acreditacion: i.nombre_acreditacion,\n      observaciones: i.observaciones,\n      posicion_espera: posicion,\n      evento: e.evento_id ? {\n        nombre: e.nombre, categoria: e.categoria, grupo_edad: e.grupo_edad, fecha: e.fecha, hora: e.hora,\n        inicio: inicio.toISOString(), lugar: e.lugar, estado: e.estado, motivo_estado: e.motivo_estado || '', imagen_url: e.imagen_url,\n      } : null,\n      editable: ESTADOS_ACTIVOS.includes(i.estado) && e.estado === 'PUBLICADO' && inicio && inicio.getTime() > Date.now(),\n    };\n  })\n  .sort((a, b) => String(b.fecha_inscripcion).localeCompare(String(a.fecha_inscripcion)));\nreturn [{ json: { status: 200, body: { ok: true, telegram_vinculado: telegram, total: propias.length, inscripciones: propias } } }];\n"
+      },
+      "id": "18996d0d-7f45-54c7-8378-eff883d5db65",
+      "name": "Inscripciones del usuario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
+      },
+      "id": "2d7f03a1-e01d-5a8e-977a-797ba419b11a",
+      "name": "Responder listado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// --- Utilidades de eventos e inscripciones ------------------------------\nconst ZONA_HORARIA = '-05:00'; // Hora de Colombia\nfunction inicioEvento(evento) {\n  const [h = '00', m = '00'] = norm(evento.hora).split(':');\n  return new Date(`${norm(evento.fecha)}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00${ZONA_HORARIA}`);\n}\nconst ESTADOS_ACTIVOS = ['CONFIRMADA', 'LISTA_ESPERA'];\nfunction confirmadasDe(inscripciones, eventoId) {\n  return inscripciones.filter((i) => i.evento_id === eventoId && i.estado === 'CONFIRMADA').length;\n}\nfunction listaEsperaDe(inscripciones, eventoId) {\n  return inscripciones\n    .filter((i) => i.evento_id === eventoId && i.estado === 'LISTA_ESPERA')\n    .sort((a, b) => norm(a.fecha_inscripcion).localeCompare(norm(b.fecha_inscripcion)));\n}\nconst fechaLegible = (evento) => {\n  const d = inicioEvento(evento);\n  if (isNaN(d)) return `${evento.fecha} ${evento.hora}`;\n  return d.toLocaleString('es-CO', {\n    timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',\n  });\n};\nconst auditar = (ins, accion, estado_anterior, estado_nuevo, resultado, detalle) => ({\n  auditoria_id: nuevoId('AUDI'), inscripcion_id: ins.inscripcion_id || '', usuario_id: ins.usuario_id || '', evento_id: ins.evento_id || '',\n  accion, estado_anterior, estado_nuevo, fecha: ahora(), resultado, detalle,\n});\nconst d = $('Validar solicitud').first().json;\nconst u = $('Validar sesión y usuario').first().json;\nconst ins = filas('Leer Inscripciones').find((i) => i.inscripcion_id === d.inscripcion_id);\n// Una inscripción ajena se reporta igual que una inexistente.\nif (!ins || ins.usuario_id !== u.usuario_id) return fallo(404, 'No encontramos esa inscripción en tu cuenta.');\nconst evento = filas('Leer Eventos').find((e) => e.evento_id === ins.evento_id) || {};\nif (!ESTADOS_ACTIVOS.includes(ins.estado)) return fallo(409, 'Solo puedes editar inscripciones activas.');\nif (inicioEvento(evento).getTime() <= Date.now()) return fallo(409, 'El evento ya empezó; la inscripción no se puede editar.');\nconst cambios = {};\nif (d.nombre_acreditacion && d.nombre_acreditacion !== ins.nombre_acreditacion) cambios.nombre_acreditacion = d.nombre_acreditacion;\nif (d.observaciones !== ins.observaciones) cambios.observaciones = d.observaciones;\nif (Object.keys(cambios).length === 0) return fallo(400, 'No hay cambios para guardar.');\nconst nuevo = { ...ins, ...cambios, fecha_actualizacion: ahora() };\nreturn [{ json: {\n  ok: true,\n  ...nuevo,\n  _auditoria: auditar(nuevo, 'ACTUALIZAR', ins.estado, ins.estado, 'OK', 'Campos: ' + Object.keys(cambios).join(', ')),\n  _respuesta: { ok: true, mensaje: 'Inscripción actualizada.', inscripcion: { inscripcion_id: nuevo.inscripcion_id, nombre_acreditacion: nuevo.nombre_acreditacion, observaciones: nuevo.observaciones } },\n} }];\n"
+      },
+      "id": "84e9965d-5348-5526-a550-2259b6a5d39c",
+      "name": "Preparar actualización",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "92a487b0-08f2-4c8a-a444-66f2799123c4",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e6468d23-5655-5374-b492-69eaa4b15446",
+      "name": "¿Actualización permitida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Inscripciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "inscripcion_id": "={{ $json.inscripcion_id }}",
+            "nombre_acreditacion": "={{ $json.nombre_acreditacion }}",
+            "observaciones": "={{ $json.observaciones }}",
+            "fecha_actualizacion": "={{ $json.fecha_actualizacion }}"
+          },
+          "matchingColumns": [
+            "inscripcion_id"
+          ],
+          "schema": [
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "fecha_inscripcion",
+              "displayName": "fecha_inscripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "fecha_actualizacion",
+              "displayName": "fecha_actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nombre_acreditacion",
+              "displayName": "nombre_acreditacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "observaciones",
+              "displayName": "observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "origen",
+              "displayName": "origen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "orden_espera",
+              "displayName": "orden_espera",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "c666212f-c2cb-548c-acd9-4c13c2de7c47",
+      "name": "Actualizar inscripción",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3380,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Auditoria_Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Auditoria_Inscripciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "auditoria_id": "={{ $('Preparar actualización').first().json._auditoria.auditoria_id }}",
+            "inscripcion_id": "={{ $('Preparar actualización').first().json._auditoria.inscripcion_id }}",
+            "usuario_id": "={{ $('Preparar actualización').first().json._auditoria.usuario_id }}",
+            "evento_id": "={{ $('Preparar actualización').first().json._auditoria.evento_id }}",
+            "accion": "={{ $('Preparar actualización').first().json._auditoria.accion }}",
+            "estado_anterior": "={{ $('Preparar actualización').first().json._auditoria.estado_anterior }}",
+            "estado_nuevo": "={{ $('Preparar actualización').first().json._auditoria.estado_nuevo }}",
+            "fecha": "={{ $('Preparar actualización').first().json._auditoria.fecha }}",
+            "resultado": "={{ $('Preparar actualización').first().json._auditoria.resultado }}",
+            "detalle": "={{ $('Preparar actualización').first().json._auditoria.detalle }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "auditoria_id",
+              "displayName": "auditoria_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_anterior",
+              "displayName": "estado_anterior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_nuevo",
+              "displayName": "estado_nuevo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resultado",
+              "displayName": "resultado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "useAppend": true
+        }
+      },
+      "id": "cbd2d084-a4fe-5b7d-ac2f-60d9cd0179e3",
+      "name": "Auditar actualización",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3640,
+        400
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Preparar actualización').first().json._respuesta) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "560a6fc7-991d-51f8-b2aa-706cdd9c8ba3",
+      "name": "Responder actualización",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3900,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// --- Utilidades de eventos e inscripciones ------------------------------\nconst ZONA_HORARIA = '-05:00'; // Hora de Colombia\nfunction inicioEvento(evento) {\n  const [h = '00', m = '00'] = norm(evento.hora).split(':');\n  return new Date(`${norm(evento.fecha)}T${h.padStart(2, '0')}:${m.padStart(2, '0')}:00${ZONA_HORARIA}`);\n}\nconst ESTADOS_ACTIVOS = ['CONFIRMADA', 'LISTA_ESPERA'];\nfunction confirmadasDe(inscripciones, eventoId) {\n  return inscripciones.filter((i) => i.evento_id === eventoId && i.estado === 'CONFIRMADA').length;\n}\nfunction listaEsperaDe(inscripciones, eventoId) {\n  return inscripciones\n    .filter((i) => i.evento_id === eventoId && i.estado === 'LISTA_ESPERA')\n    .sort((a, b) => norm(a.fecha_inscripcion).localeCompare(norm(b.fecha_inscripcion)));\n}\nconst fechaLegible = (evento) => {\n  const d = inicioEvento(evento);\n  if (isNaN(d)) return `${evento.fecha} ${evento.hora}`;\n  return d.toLocaleString('es-CO', {\n    timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',\n  });\n};\nconst auditar = (ins, accion, estado_anterior, estado_nuevo, resultado, detalle) => ({\n  auditoria_id: nuevoId('AUDI'), inscripcion_id: ins.inscripcion_id || '', usuario_id: ins.usuario_id || '', evento_id: ins.evento_id || '',\n  accion, estado_anterior, estado_nuevo, fecha: ahora(), resultado, detalle,\n});\nconst d = $('Validar solicitud').first().json;\nconst u = $('Validar sesión y usuario').first().json;\nconst ins = filas('Leer Inscripciones').find((i) => i.inscripcion_id === d.inscripcion_id);\n// Una inscripción ajena se reporta igual que una inexistente.\nif (!ins || ins.usuario_id !== u.usuario_id) return fallo(404, 'No encontramos esa inscripción en tu cuenta.');\nconst evento = filas('Leer Eventos').find((e) => e.evento_id === ins.evento_id) || {};\nif (ins.estado === 'CANCELADA') return fallo(409, 'Esta inscripción ya estaba cancelada.');\nif (inicioEvento(evento).getTime() <= Date.now()) return fallo(409, 'El evento ya empezó; la inscripción no se puede cancelar.');\nconst nuevo = { ...ins, estado: 'CANCELADA', orden_espera: '', fecha_actualizacion: ahora() };\nconst liberaCupo = ins.estado === 'CONFIRMADA';\nreturn [{ json: {\n  ok: true,\n  ...nuevo,\n  _auditoria: auditar(nuevo, 'CANCELAR', ins.estado, 'CANCELADA', 'OK', liberaCupo ? 'Cupo liberado; WF07 lo reasignará' : 'Salida de la lista de espera'),\n  _respuesta: { ok: true, mensaje: 'Inscripción cancelada.', inscripcion: { inscripcion_id: nuevo.inscripcion_id, estado: 'CANCELADA' } },\n  _notificacion: {\n    usuario_id: ins.usuario_id, evento_id: ins.evento_id, inscripcion_id: ins.inscripcion_id,\n    tipo: 'INSCRIPCION_CANCELADA', titulo: `Cancelaste tu inscripción: ${evento.nombre || ins.evento_id}`,\n    mensaje: liberaCupo\n      ? 'Tu cupo quedó libre y se asignará a la siguiente persona en lista de espera. Puedes volver a inscribirte si aún hay cupos.'\n      : 'Saliste de la lista de espera de este evento.',\n    clave_idempotencia: `INSCRIPCION_CANCELADA|${ins.inscripcion_id}`,\n  },\n} }];\n"
+      },
+      "id": "4b5096fa-628e-512a-b5ba-214e446dd835",
+      "name": "Preparar cancelación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "3d4f5c1c-9ae5-4e25-afcd-6e936fa461cd",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8e054901-e42c-5f52-bd32-06625267dc8c",
+      "name": "¿Cancelación permitida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Inscripciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "inscripcion_id": "={{ $json.inscripcion_id }}",
+            "estado": "={{ $json.estado }}",
+            "orden_espera": "={{ $json.orden_espera }}",
+            "fecha_actualizacion": "={{ $json.fecha_actualizacion }}"
+          },
+          "matchingColumns": [
+            "inscripcion_id"
+          ],
+          "schema": [
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_inscripcion",
+              "displayName": "fecha_inscripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "fecha_actualizacion",
+              "displayName": "fecha_actualizacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "nombre_acreditacion",
+              "displayName": "nombre_acreditacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "observaciones",
+              "displayName": "observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "origen",
+              "displayName": "origen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "orden_espera",
+              "displayName": "orden_espera",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "d4e868fc-8b33-51fc-8c62-c89d5d4bd255",
+      "name": "Cancelar inscripción",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3380,
+        800
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP06_INSCRIPCIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP06_Inscripciones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Auditoria_Inscripciones",
+          "mode": "name",
+          "cachedResultName": "Auditoria_Inscripciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "auditoria_id": "={{ $('Preparar cancelación').first().json._auditoria.auditoria_id }}",
+            "inscripcion_id": "={{ $('Preparar cancelación').first().json._auditoria.inscripcion_id }}",
+            "usuario_id": "={{ $('Preparar cancelación').first().json._auditoria.usuario_id }}",
+            "evento_id": "={{ $('Preparar cancelación').first().json._auditoria.evento_id }}",
+            "accion": "={{ $('Preparar cancelación').first().json._auditoria.accion }}",
+            "estado_anterior": "={{ $('Preparar cancelación').first().json._auditoria.estado_anterior }}",
+            "estado_nuevo": "={{ $('Preparar cancelación').first().json._auditoria.estado_nuevo }}",
+            "fecha": "={{ $('Preparar cancelación').first().json._auditoria.fecha }}",
+            "resultado": "={{ $('Preparar cancelación').first().json._auditoria.resultado }}",
+            "detalle": "={{ $('Preparar cancelación').first().json._auditoria.detalle }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "auditoria_id",
+              "displayName": "auditoria_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "inscripcion_id",
+              "displayName": "inscripcion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "evento_id",
+              "displayName": "evento_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "accion",
+              "displayName": "accion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_anterior",
+              "displayName": "estado_anterior",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado_nuevo",
+              "displayName": "estado_nuevo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "resultado",
+              "displayName": "resultado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "detalle",
+              "displayName": "detalle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "useAppend": true
+        }
+      },
+      "id": "d35da8aa-5c7b-5775-9ca5-7f5ba1b95b95",
+      "name": "Auditar cancelación",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        3640,
+        800
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Preparar cancelación').first().json._respuesta) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "b8a38cd9-8398-5681-ab65-313e6d8e6919",
+      "name": "Responder cancelación",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3900,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Preparar cancelación').first().json._notificacion }];\n"
+      },
+      "id": "ed5b1602-a834-5bf3-aac6-2f34460d92d5",
+      "name": "Preparar notificación de cancelación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4160,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "__WF09_NOTIFICACIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "WF09 — Servicio central de notificaciones"
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "d892fbf5-b6f4-5a05-84d6-dfcae48828a3",
+      "name": "Notificar cancelación (WF09)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        4420,
+        800
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Inscripciones": {
+      "main": [
+        [
+          {
+            "node": "Validar solicitud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar solicitud": {
+      "main": [
+        [
+          {
+            "node": "¿Solicitud válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Solicitud válida?": {
+      "main": [
+        [
+          {
+            "node": "Leer Sesiones",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Sesiones": {
+      "main": [
+        [
+          {
+            "node": "Leer Usuarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Usuarios": {
+      "main": [
+        [
+          {
+            "node": "Leer Vinculación Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Vinculación Telegram": {
+      "main": [
+        [
+          {
+            "node": "Leer Eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Eventos": {
+      "main": [
+        [
+          {
+            "node": "Leer Inscripciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Inscripciones": {
+      "main": [
+        [
+          {
+            "node": "Validar sesión y usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar sesión y usuario": {
+      "main": [
+        [
+          {
+            "node": "¿Sesión válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sesión válida?": {
+      "main": [
+        [
+          {
+            "node": "Según operación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder error": {
+      "main": [
+        [
+          {
+            "node": "¿Auditar rechazo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Auditar rechazo?": {
+      "main": [
+        [
+          {
+            "node": "Auditar rechazo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Según operación": {
+      "main": [
+        [
+          {
+            "node": "Validaciones de negocio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Inscripciones del usuario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar actualización",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar cancelación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validaciones de negocio": {
+      "main": [
+        [
+          {
+            "node": "¿Puede inscribirse?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Puede inscribirse?": {
+      "main": [
+        [
+          {
+            "node": "Calcular cupos y estado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular cupos y estado": {
+      "main": [
+        [
+          {
+            "node": "Guardar inscripción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar inscripción": {
+      "main": [
+        [
+          {
+            "node": "Auditar inscripción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar inscripción": {
+      "main": [
+        [
+          {
+            "node": "Responder inscripción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder inscripción": {
+      "main": [
+        [
+          {
+            "node": "Preparar notificación de inscripción",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar notificación de inscripción": {
+      "main": [
+        [
+          {
+            "node": "Notificar inscripción (WF09)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inscripciones del usuario": {
+      "main": [
+        [
+          {
+            "node": "Responder listado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar actualización": {
+      "main": [
+        [
+          {
+            "node": "¿Actualización permitida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Actualización permitida?": {
+      "main": [
+        [
+          {
+            "node": "Actualizar inscripción",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar inscripción": {
+      "main": [
+        [
+          {
+            "node": "Auditar actualización",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar actualización": {
+      "main": [
+        [
+          {
+            "node": "Responder actualización",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar cancelación": {
+      "main": [
+        [
+          {
+            "node": "¿Cancelación permitida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Cancelación permitida?": {
+      "main": [
+        [
+          {
+            "node": "Cancelar inscripción",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelar inscripción": {
+      "main": [
+        [
+          {
+            "node": "Auditar cancelación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auditar cancelación": {
+      "main": [
+        [
+          {
+            "node": "Responder cancelación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder cancelación": {
+      "main": [
+        [
+          {
+            "node": "Preparar notificación de cancelación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar notificación de cancelación": {
+      "main": [
+        [
+          {
+            "node": "Notificar cancelación (WF09)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

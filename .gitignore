@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.vercel/
+.DS_Store
+# Copias de los workflows con IDs reales generadas por scripts/configurar_n8n.py
+n8n/configurado/
+n8n/ids.json

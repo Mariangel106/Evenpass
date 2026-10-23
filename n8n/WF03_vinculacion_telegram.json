@@ -1,0 +1,1676 @@
+{
+  "name": "WF03 — Vinculación con Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## WF03 — Vinculación con Telegram\n**Triggers:** Webhook `POST /webhook/ep/telegram/codigo` + Telegram Trigger (`/vincular CODIGO`).\n\nCódigo de 6 caracteres válido 10 minutos y de un solo uso. Estados de código: PENDIENTE · USADO · EXPIRADO · CANCELADO. Persistencia: **EP03_Telegram**.",
+        "height": 200,
+        "width": 620,
+        "color": 7
+      },
+      "id": "6e3dad68-f501-5f40-97a4-1fbf7ead8122",
+      "name": "Nota WF03",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ep/telegram/codigo",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "1ea316fd-070b-5d62-ba0e-f6a99f804df4",
+      "name": "Webhook Solicitar código",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "27ad2e72-754a-5198-91a3-2a125682dfd5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\nconst b = $input.first().json.body || {};\nconst token = norm(b.session_token);\nif (!token) return fallo(401, 'Inicia sesión para vincular Telegram.');\nreturn [{ json: { ok: true, session_token: token } }];\n"
+      },
+      "id": "85c2115d-b945-55d7-9d20-500cadfbb97c",
+      "name": "Validar solicitud",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "50913480-f4dc-477a-9186-4ec524a59f05",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d77028da-b84b-5cf3-a50b-6a3f9e2f0a74",
+      "name": "¿Solicitud válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP02_SESIONES_ID__",
+          "mode": "id",
+          "cachedResultName": "EP02_Sesiones"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sesiones",
+          "mode": "name",
+          "cachedResultName": "Sesiones"
+        },
+        "options": {}
+      },
+      "id": "0c0eec8e-6a0b-5e43-a773-c876fb00ffce",
+      "name": "Leer Sesiones",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        780,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP01_USUARIOS_ID__",
+          "mode": "id",
+          "cachedResultName": "EP01_Usuarios"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Usuarios",
+          "mode": "name",
+          "cachedResultName": "Usuarios"
+        },
+        "options": {}
+      },
+      "id": "bdb4fea2-43e4-5d49-9dd6-1bdeebdf583b",
+      "name": "Leer Usuarios",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1040,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Codigos_Vinculacion",
+          "mode": "name",
+          "cachedResultName": "Codigos_Vinculacion"
+        },
+        "options": {}
+      },
+      "id": "dfa2de88-789e-5ffa-9aac-0f28517f5ad8",
+      "name": "Leer Códigos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1300,
+        0
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\n// --- Hashing de contraseñas (SHA-256 iterado con salt) -------------------\n// Implementación en JS puro para que funcione aunque n8n no permita require('crypto').\nfunction sha256(texto) {\n  const utf8 = unescape(encodeURIComponent(texto));\n  const K = [];\n  const H = [];\n  let primo = 2;\n  const esPrimo = (n) => { for (let d = 2; d * d <= n; d++) if (n % d === 0) return false; return true; };\n  const frac = (x) => ((x - Math.floor(x)) * 0x100000000) | 0;\n  while (K.length < 64) {\n    if (esPrimo(primo)) {\n      if (H.length < 8) H.push(frac(Math.pow(primo, 1 / 2)));\n      K.push(frac(Math.pow(primo, 1 / 3)));\n    }\n    primo++;\n  }\n  const bytes = [];\n  for (let i = 0; i < utf8.length; i++) bytes.push(utf8.charCodeAt(i));\n  const bitLen = bytes.length * 8;\n  bytes.push(0x80);\n  while (bytes.length % 64 !== 56) bytes.push(0);\n  for (let i = 7; i >= 0; i--) bytes.push(i >= 4 ? 0 : (bitLen >>> (i * 8)) & 0xff);\n  const rotr = (x, n) => (x >>> n) | (x << (32 - n));\n  const w = new Array(64);\n  for (let off = 0; off < bytes.length; off += 64) {\n    for (let i = 0; i < 16; i++) {\n      w[i] = (bytes[off + i * 4] << 24) | (bytes[off + i * 4 + 1] << 16) | (bytes[off + i * 4 + 2] << 8) | bytes[off + i * 4 + 3];\n    }\n    for (let i = 16; i < 64; i++) {\n      const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);\n      const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);\n      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;\n    }\n    let [a, b, c, d, e, f, g, h] = H;\n    for (let i = 0; i < 64; i++) {\n      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);\n      const t1 = (h + S1 + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;\n      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);\n      const t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;\n      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;\n    }\n    H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;\n    H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;\n  }\n  return H.map((x) => (x >>> 0).toString(16).padStart(8, '0')).join('');\n}\n\nconst ITERACIONES_HASH = 5000;\n\nfunction hashPassword(password, salt) {\n  let hash = sha256(salt + ':' + password);\n  for (let i = 1; i < ITERACIONES_HASH; i++) hash = sha256(hash + salt);\n  return hash;\n}\n\nfunction hexAleatorio(bytes) {\n  try {\n    return require('crypto').randomBytes(bytes).toString('hex');\n  } catch (e) {\n    let s = '';\n    for (let i = 0; i < bytes * 2; i++) s += Math.floor(Math.random() * 16).toString(16);\n    return s;\n  }\n}\n\n// Comparación en tiempo constante para no filtrar información por tiempos.\nfunction igualesSeguro(a, b) {\n  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;\n  let r = 0;\n  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);\n  return r === 0;\n}\n// --- Validación de sesión (lee EP02 Sesiones y EP01 Usuarios) -------------\n// Una sesión no es válida si no existe, está cerrada, expiró o su usuario está INACTIVO.\nfunction resolverSesion(token) {\n  const t = norm(token);\n  if (!t) return { ok: false, status: 401, error: 'Inicia sesión para continuar.' };\n  const sesion = filas('Leer Sesiones').find((s) => s.session_token === t);\n  if (!sesion) return { ok: false, status: 401, error: 'Tu sesión no es válida. Inicia sesión de nuevo.' };\n  if (sesion.estado !== 'ACTIVA') return { ok: false, status: 401, error: 'Tu sesión fue cerrada. Inicia sesión de nuevo.' };\n  if (new Date(sesion.expira_en).getTime() <= Date.now()) {\n    return { ok: false, status: 401, error: 'Tu sesión expiró. Inicia sesión de nuevo.' };\n  }\n  const usuario = filas('Leer Usuarios').find((u) => u.usuario_id === sesion.usuario_id);\n  if (!usuario || usuario.estado !== 'ACTIVO') {\n    return { ok: false, status: 403, error: 'Esta cuenta está inactiva.' };\n  }\n  return { ok: true, sesion, usuario };\n}\nconst s = resolverSesion($('Validar solicitud').first().json.session_token);\nif (!s.ok) return fallo(s.status, s.error);\nconst VIGENCIA_MIN = 10;\n// Sin caracteres ambiguos (0/O, 1/I) para que sea fácil de escribir en Telegram.\nconst ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';\nconst existentes = new Set(filas('Leer Códigos').map((c) => c.codigo));\nlet codigo;\ndo {\n  const hex = hexAleatorio(6);\n  codigo = Array.from({ length: 6 }, (_, i) => ALFABETO[parseInt(hex.substr(i * 2, 2), 16) % ALFABETO.length]).join('');\n} while (existentes.has(codigo));\nconst creado = new Date();\nconst registro = {\n  codigo_id: nuevoId('COD'),\n  usuario_id: s.usuario.usuario_id,\n  codigo,\n  creado_en: creado.toISOString(),\n  expira_en: new Date(creado.getTime() + VIGENCIA_MIN * 60 * 1000).toISOString(),\n  estado: 'PENDIENTE',\n  usado_en: '',\n};\n// Los códigos pendientes anteriores del mismo usuario dejan de servir.\nconst aCancelar = filas('Leer Códigos')\n  .filter((c) => c.usuario_id === registro.usuario_id && c.estado === 'PENDIENTE')\n  .map((c) => ({ codigo_id: c.codigo_id, estado: 'CANCELADO' }));\nreturn [{ json: { ok: true, ...registro, _cancelar: aCancelar } }];\n"
+      },
+      "id": "6635ab2c-a1e4-595f-aa69-272edd167f0d",
+      "name": "Generar código temporal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "ef151395-3441-41bc-a715-711ed6a6bd8b",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "18b7617e-1a5b-53c6-b0f6-a04c565ce7ee",
+      "name": "¿Sesión válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Codigos_Vinculacion",
+          "mode": "name",
+          "cachedResultName": "Codigos_Vinculacion"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "codigo_id": "={{ $json.codigo_id }}",
+            "usuario_id": "={{ $json.usuario_id }}",
+            "codigo": "={{ $json.codigo }}",
+            "creado_en": "={{ $json.creado_en }}",
+            "expira_en": "={{ $json.expira_en }}",
+            "estado": "={{ $json.estado }}",
+            "usado_en": "={{ $json.usado_en }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "codigo_id",
+              "displayName": "codigo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "codigo",
+              "displayName": "codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "creado_en",
+              "displayName": "creado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "expira_en",
+              "displayName": "expira_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usado_en",
+              "displayName": "usado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "useAppend": true
+        }
+      },
+      "id": "fad5d1d5-3fcd-5af5-930e-d884bda95239",
+      "name": "Guardar código",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2080,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, codigo: $('Generar código temporal').first().json.codigo, expira_en: $('Generar código temporal').first().json.expira_en, instruccion: 'Envía /vincular ' + $('Generar código temporal').first().json.codigo + ' al bot de EventPass en Telegram.' }) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "7d2095da-e797-5010-bf9a-d0d849bfc56f",
+      "name": "Responder código",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2340,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return ($('Generar código temporal').first().json._cancelar || []).map((c) => ({ json: c }));\n"
+      },
+      "id": "505ba369-e5c8-5f8f-9509-d35a49e2d906",
+      "name": "Códigos anteriores a cancelar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Codigos_Vinculacion",
+          "mode": "name",
+          "cachedResultName": "Codigos_Vinculacion"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "codigo_id": "={{ $json.codigo_id }}",
+            "estado": "={{ $json.estado }}"
+          },
+          "matchingColumns": [
+            "codigo_id"
+          ],
+          "schema": [
+            {
+              "id": "codigo_id",
+              "displayName": "codigo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "codigo",
+              "displayName": "codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "creado_en",
+              "displayName": "creado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "expira_en",
+              "displayName": "expira_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usado_en",
+              "displayName": "usado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "9288982d-c5fb-52a3-b1eb-d7149703d4b1",
+      "name": "Cancelar códigos anteriores",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2860,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
+      },
+      "id": "83d5bac9-aefc-5dab-a8b2-1a0c1e231b09",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "d19d2cd8-3347-5ee4-afda-432b5ba7d02f",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        1000
+      ],
+      "webhookId": "656af764-d8d1-5c92-b722-7c4ae6b93768"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\nconst m = $input.first().json.message || {};\nconst texto = norm(m.text);\nconst partes = texto.split(/\\s+/);\nconst comando = (partes[0] || '').toLowerCase().replace(/@.*$/, '');\nlet tipo = 'OTRO';\nif (comando === '/vincular') tipo = 'VINCULAR';\nelse if (comando === '/start' || comando === '/ayuda' || comando === '/help') tipo = 'AYUDA';\nreturn [{ json: {\n  tipo,\n  chat_id: String(m.chat?.id ?? ''),\n  telegram_username: m.from?.username ? '@' + m.from.username : norm(m.from?.first_name),\n  codigo: (partes[1] || '').toUpperCase(),\n} }];\n"
+      },
+      "id": "25f12137-d7b5-5811-91f5-b2a0c9fe9bfd",
+      "name": "Extraer comando",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "88051b5c-3002-4a58-999a-d214c32373b8",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "VINCULAR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "VINCULAR"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "5f0fcebf-f5a9-43bb-a5dc-032f22487c56",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "AYUDA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AYUDA"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "791c4157-5c2e-40db-871e-584d468283ba",
+                    "leftValue": "={{ $json.tipo }}",
+                    "rightValue": "OTRO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "OTRO"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "db3605c4-9979-5ced-9424-a39ceca6b9a5",
+      "name": "Tipo de mensaje",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        520,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extraer comando').first().json.chat_id }}",
+        "text": "=Hola, soy el bot de <b>EventPass</b> 🏅\n\nPara recibir tus confirmaciones y recordatorios aquí:\n1. Entra a tu perfil en la web de EventPass.\n2. Pulsa <b>Generar código de vinculación</b>.\n3. Envíame <code>/vincular TUCODIGO</code>.\n\nEl código vence a los 10 minutos.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "501284f2-6480-5a64-895f-ef3baf070926",
+      "name": "Responder ayuda",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        780,
+        1300.0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Codigos_Vinculacion",
+          "mode": "name",
+          "cachedResultName": "Codigos_Vinculacion"
+        },
+        "options": {}
+      },
+      "id": "e7920d43-23a7-5cbd-8b76-7bad83e067a8",
+      "name": "Leer códigos vigentes",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        780,
+        800
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Vinculaciones",
+          "mode": "name",
+          "cachedResultName": "Vinculaciones"
+        },
+        "options": {}
+      },
+      "id": "45f63b08-7335-557d-a46d-b63eabb7f1dd",
+      "name": "Leer vinculaciones",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1040,
+        800
+      ],
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Utilidades comunes de EventPass ------------------------------------\nconst ahora = () => new Date().toISOString();\nconst nuevoId = (prefijo) =>\n  prefijo + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();\nconst norm = (v) => String(v ?? '').trim();\nconst normEmail = (v) => norm(v).toLowerCase();\n// Lee todas las filas de un nodo de Google Sheets ignorando el item vacío que produce \"Always Output Data\".\nconst filas = (nodo) => {\n  try {\n    return $(nodo).all().map((i) => i.json).filter((r) => r && Object.keys(r).length > 0);\n  } catch (e) {\n    return [];\n  }\n};\nconst fallo = (status, mensaje, extra = {}) => [{ json: { ok: false, status, body: { ok: false, error: mensaje }, ...extra } }];\nconst cmd = $('Extraer comando').first().json;\nconst respuesta = (resultado, mensaje, extra = {}) => [{ json: { resultado, mensaje, ...extra } }];\nif (!/^[A-Z0-9]{6}$/.test(cmd.codigo)) {\n  return respuesta('INVALIDO', 'Escribe el comando así: /vincular ABC234 (con el código que ves en tu perfil).');\n}\nconst c = filas('Leer códigos vigentes').find((r) => r.codigo === cmd.codigo);\nif (!c) return respuesta('INVALIDO', 'Ese código no existe. Genera uno nuevo desde tu perfil en EventPass.');\nif (c.estado === 'USADO') return respuesta('USADO', 'Ese código ya fue usado. Cada código sirve una sola vez.');\nif (c.estado === 'CANCELADO') return respuesta('INVALIDO', 'Ese código fue reemplazado por uno más reciente. Usa el último que generaste.');\nif (c.estado === 'EXPIRADO' || new Date(c.expira_en).getTime() <= Date.now()) {\n  return respuesta('EXPIRADO', 'Ese código venció. Genera uno nuevo desde tu perfil; dura 10 minutos.', { codigo_id: c.codigo_id, estado: 'EXPIRADO' });\n}\nconst fecha = ahora();\n// Un usuario y un chat solo pueden tener una vinculación ACTIVA: las anteriores pasan a INACTIVA.\nconst anteriores = filas('Leer vinculaciones')\n  .filter((v) => v.estado === 'ACTIVA' && (v.usuario_id === c.usuario_id || String(v.chat_id) === cmd.chat_id))\n  .map((v) => ({ vinculacion_id: v.vinculacion_id, estado: 'INACTIVA' }));\nreturn respuesta('OK', '', {\n  codigo_id: c.codigo_id,\n  estado: 'USADO',\n  usado_en: fecha,\n  vinculacion: {\n    vinculacion_id: nuevoId('VIN'),\n    usuario_id: c.usuario_id,\n    chat_id: cmd.chat_id,\n    telegram_username: cmd.telegram_username,\n    fecha_vinculacion: fecha,\n    estado: 'ACTIVA',\n  },\n  _desactivar: anteriores,\n});\n"
+      },
+      "id": "d03907ce-0805-566d-932b-70ca9ac9c2d3",
+      "name": "Validar código y vigencia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "0c5768ab-6a2d-44de-8564-6832c8e5ca4f",
+                    "leftValue": "={{ $json.resultado }}",
+                    "rightValue": "OK",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "OK"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "2da3968c-baa6-44bc-b605-3ae7389a13e5",
+                    "leftValue": "={{ $json.resultado }}",
+                    "rightValue": "EXPIRADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "EXPIRADO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "50465616-cd66-4845-84f5-7f4071fb4760",
+                    "leftValue": "={{ $json.resultado }}",
+                    "rightValue": "USADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "USADO"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "28c76300-15f5-42dc-b437-85845a695f88",
+                    "leftValue": "={{ $json.resultado }}",
+                    "rightValue": "INVALIDO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INVALIDO"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8804f03c-6c5f-54a5-827b-92478386926e",
+      "name": "Resultado del código",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1560,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Codigos_Vinculacion",
+          "mode": "name",
+          "cachedResultName": "Codigos_Vinculacion"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "codigo_id": "={{ $json.codigo_id }}",
+            "estado": "={{ $json.estado }}",
+            "usado_en": "={{ $json.usado_en }}"
+          },
+          "matchingColumns": [
+            "codigo_id"
+          ],
+          "schema": [
+            {
+              "id": "codigo_id",
+              "displayName": "codigo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "codigo",
+              "displayName": "codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "creado_en",
+              "displayName": "creado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "expira_en",
+              "displayName": "expira_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usado_en",
+              "displayName": "usado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "4c6a5724-7cd8-5bcd-81f3-43385b911a7d",
+      "name": "Marcar código usado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1820,
+        600
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "return ($('Validar código y vigencia').first().json._desactivar || []).map((v) => ({ json: v }));\n"
+      },
+      "id": "25fdf70e-deb9-5ddb-83aa-cc0adafe1cce",
+      "name": "Vinculaciones anteriores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        600
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Vinculaciones",
+          "mode": "name",
+          "cachedResultName": "Vinculaciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vinculacion_id": "={{ $json.vinculacion_id }}",
+            "estado": "={{ $json.estado }}"
+          },
+          "matchingColumns": [
+            "vinculacion_id"
+          ],
+          "schema": [
+            {
+              "id": "vinculacion_id",
+              "displayName": "vinculacion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "telegram_username",
+              "displayName": "telegram_username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "fecha_vinculacion",
+              "displayName": "fecha_vinculacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "010655bc-676f-5b70-8ca3-2d53fe6b9003",
+      "name": "Desactivar vinculaciones anteriores",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2340,
+        600
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Vinculaciones",
+          "mode": "name",
+          "cachedResultName": "Vinculaciones"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vinculacion_id": "={{ $('Validar código y vigencia').first().json.vinculacion.vinculacion_id }}",
+            "usuario_id": "={{ $('Validar código y vigencia').first().json.vinculacion.usuario_id }}",
+            "chat_id": "={{ $('Validar código y vigencia').first().json.vinculacion.chat_id }}",
+            "telegram_username": "={{ $('Validar código y vigencia').first().json.vinculacion.telegram_username }}",
+            "fecha_vinculacion": "={{ $('Validar código y vigencia').first().json.vinculacion.fecha_vinculacion }}",
+            "estado": "={{ $('Validar código y vigencia').first().json.vinculacion.estado }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "vinculacion_id",
+              "displayName": "vinculacion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "telegram_username",
+              "displayName": "telegram_username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha_vinculacion",
+              "displayName": "fecha_vinculacion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "useAppend": true
+        }
+      },
+      "id": "a8fa914c-704d-5b6b-a9d1-6387f8147e75",
+      "name": "Guardar chat_id",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2600,
+        600
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extraer comando').first().json.chat_id }}",
+        "text": "=✅ Listo, tu cuenta de EventPass quedó vinculada a este chat.\n\nAquí te avisaremos cuando confirmes una inscripción, entres a lista de espera, se libere un cupo o se acerque tu evento.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "8b858789-00f6-5568-ac77-35b4a0b1376a",
+      "name": "Confirmar vinculación",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2860,
+        600
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "__EP03_TELEGRAM_ID__",
+          "mode": "id",
+          "cachedResultName": "EP03_Telegram"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Codigos_Vinculacion",
+          "mode": "name",
+          "cachedResultName": "Codigos_Vinculacion"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "codigo_id": "={{ $json.codigo_id }}",
+            "estado": "={{ $json.estado }}"
+          },
+          "matchingColumns": [
+            "codigo_id"
+          ],
+          "schema": [
+            {
+              "id": "codigo_id",
+              "displayName": "codigo_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usuario_id",
+              "displayName": "usuario_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "codigo",
+              "displayName": "codigo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "creado_en",
+              "displayName": "creado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "expira_en",
+              "displayName": "expira_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "usado_en",
+              "displayName": "usado_en",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "4e3f7bdc-8df0-57c0-b819-a01d0a04b6a4",
+      "name": "Marcar código expirado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1820,
+        1000
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extraer comando').first().json.chat_id }}",
+        "text": "=⚠️ {{ $('Validar código y vigencia').first().json.mensaje }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "50bb9e30-f2ab-5e7c-9a77-10253dc021bc",
+      "name": "Responder problema con el código",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2080,
+        1100.0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "430560ca-fc6f-44ee-a39f-0f9e8d1ebb82",
+              "leftValue": "={{ $json.vinculacion_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0a9c1c22-5d76-50da-b866-0171b47d795b",
+      "name": "¿Hay vinculaciones anteriores?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Solicitar código": {
+      "main": [
+        [
+          {
+            "node": "Validar solicitud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar solicitud": {
+      "main": [
+        [
+          {
+            "node": "¿Solicitud válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Solicitud válida?": {
+      "main": [
+        [
+          {
+            "node": "Leer Sesiones",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Sesiones": {
+      "main": [
+        [
+          {
+            "node": "Leer Usuarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Usuarios": {
+      "main": [
+        [
+          {
+            "node": "Leer Códigos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Códigos": {
+      "main": [
+        [
+          {
+            "node": "Generar código temporal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar código temporal": {
+      "main": [
+        [
+          {
+            "node": "¿Sesión válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sesión válida?": {
+      "main": [
+        [
+          {
+            "node": "Guardar código",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar código": {
+      "main": [
+        [
+          {
+            "node": "Responder código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder código": {
+      "main": [
+        [
+          {
+            "node": "Códigos anteriores a cancelar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Códigos anteriores a cancelar": {
+      "main": [
+        [
+          {
+            "node": "Cancelar códigos anteriores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extraer comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer comando": {
+      "main": [
+        [
+          {
+            "node": "Tipo de mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de mensaje": {
+      "main": [
+        [
+          {
+            "node": "Leer códigos vigentes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder ayuda",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder ayuda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer códigos vigentes": {
+      "main": [
+        [
+          {
+            "node": "Leer vinculaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer vinculaciones": {
+      "main": [
+        [
+          {
+            "node": "Validar código y vigencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar código y vigencia": {
+      "main": [
+        [
+          {
+            "node": "Resultado del código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado del código": {
+      "main": [
+        [
+          {
+            "node": "Marcar código usado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar código expirado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder problema con el código",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder problema con el código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar código expirado": {
+      "main": [
+        [
+          {
+            "node": "Responder problema con el código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar código usado": {
+      "main": [
+        [
+          {
+            "node": "Vinculaciones anteriores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vinculaciones anteriores": {
+      "main": [
+        [
+          {
+            "node": "¿Hay vinculaciones anteriores?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay vinculaciones anteriores?": {
+      "main": [
+        [
+          {
+            "node": "Desactivar vinculaciones anteriores",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardar chat_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desactivar vinculaciones anteriores": {
+      "main": [
+        [
+          {
+            "node": "Guardar chat_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar chat_id": {
+      "main": [
+        [
+          {
+            "node": "Confirmar vinculación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
