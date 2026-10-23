@@ -2,7 +2,7 @@
 
 **Estudiante:** Mariangel Jaimes ([@Mariangel106](https://github.com/Mariangel106))
 **URL pública (Vercel):** _[https://tu-proyecto.vercel.app]_
-**Repositorio:** _[https://github.com/Mariangel106/eventpass]_
+**Repositorio:** https://github.com/Mariangel106/Evenpass
 
 EventPass es una aplicación web pública para inscribirse a eventos deportivos en Santander (Colombia). Hay cinco disciplinas: natación, atletismo, ciclismo, karate y CrossFit. Cada una tiene un evento para **adultos** y otro para **niños**, todos con **10 cupos**.
 
