@@ -9,10 +9,19 @@ if (existsSync('.env')) {
   }
 }
 
+// Si una variable no está definida se conserva el valor que ya trae public/js/config.js.
+let previo = {};
+try {
+  const texto = readFileSync('public/js/config.js', 'utf8');
+  previo = JSON.parse(texto.slice(texto.indexOf('{'), texto.lastIndexOf('}') + 1));
+} catch {
+  // Sin config previo válido: se usan solo las variables de entorno.
+}
+
 const config = {
-  N8N_BASE_URL: process.env.EP_N8N_BASE_URL || '',
-  CHAT_URL: process.env.EP_CHAT_URL || '',
-  TELEGRAM_BOT: process.env.EP_TELEGRAM_BOT || '',
+  N8N_BASE_URL: process.env.EP_N8N_BASE_URL || previo.N8N_BASE_URL || '',
+  CHAT_URL: process.env.EP_CHAT_URL || previo.CHAT_URL || '',
+  TELEGRAM_BOT: process.env.EP_TELEGRAM_BOT || previo.TELEGRAM_BOT || '',
 };
 
 for (const [clave, valor] of Object.entries(config)) {
