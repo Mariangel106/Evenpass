@@ -30,6 +30,7 @@ La web es solo un cliente. **Toda la lógica de negocio vive en n8n**: validacio
 16. [Cómo ejecutar el proyecto](#16-cómo-ejecutar-el-proyecto)
 17. [Estructura del repositorio](#17-estructura-del-repositorio)
 18. [Seguridad](#18-seguridad)
+19. [Examen — Check-in digital](#19-examen--check-in-digital)
 
 ---
 
@@ -42,6 +43,7 @@ La web es solo un cliente. **Toda la lógica de negocio vive en n8n**: validacio
 | Ver el detalle de un evento | Vincular su Telegram con un código | — |
 | Hablar con el asistente | Inscribirse, editar o cancelar inscripciones | — |
 | | Recibir avisos por Gmail **y** Telegram | — |
+| Registrar el ingreso de un asistente (*Check-in*) | Ver el código de su inscripción para el check-in | — |
 | | Desactivar su cuenta | — |
 
 La interfaz maneja tres estados en todas las vistas: **cargando** (texto y dorsales de carga), **éxito** (avisos y confirmaciones en línea) y **error** (mensaje claro y botón *Intentar de nuevo*).
@@ -59,13 +61,14 @@ flowchart TD
       WF07[WF07 Reasignación<br/>Schedule 5 min] & WF08[WF08 Recordatorios<br/>Schedule 1 h]
       WF09[WF09 Notificaciones<br/>sub-workflow]
       WF10[WF10 Asistente<br/>Chat Trigger]
+      WF11[WF11 Check-in<br/>Webhook]
     end
-    GS[(Google Sheets<br/>EP01 … EP10)]
-    W -- "HTTP JSON (webhooks)" --> WF01 & WF02 & WF03 & WF05 & WF06
+    GS[(Google Sheets<br/>EP01 … EP11)]
+    W -- "HTTP JSON (webhooks)" --> WF01 & WF02 & WF03 & WF05 & WF06 & WF11
     W -- "Chat" --> WF10
     ADM[Administrador] -- formularios --> WF04
     TG[Telegram] -- "/vincular CODIGO" --> WF03
-    WF04 & WF06 & WF07 & WF08 -- Execute Sub-workflow --> WF09
+    WF04 & WF06 & WF07 & WF08 & WF11 -- Execute Sub-workflow --> WF09
     WF09 --> GM[Gmail] & TGB[Telegram Bot]
     WF10 --> AI[Gemini]
     N8N <--> GS
@@ -97,7 +100,7 @@ Gmail / Telegram / IA
 | Tipografía | Big Shoulders Display (títulos y números de dorsal) y Public Sans (texto), de Google Fonts |
 | Hosting | Vercel, sitio estático con un build que genera `config.js` desde variables de entorno |
 | Automatización | n8n: Webhook, Form Trigger, Telegram Trigger, Schedule Trigger, Execute Sub-workflow Trigger, Chat Trigger, Code, IF, Switch, Filter, Aggregate, Sort, Merge, Google Sheets, Gmail, Telegram, AI Agent |
-| Persistencia | Google Sheets (10 archivos) |
+| Persistencia | Google Sheets (11 archivos) |
 | Mensajería | Gmail y bot de Telegram |
 | IA | Google Gemini (`gemini-3.1-flash-lite`) con un AI Agent de n8n y memoria por conversación |
 | Diseño asistido | Claude Code con la skill *frontend-design* |
@@ -116,6 +119,7 @@ Gmail / Telegram / IA
 | WF08 — Recordatorios | `n8n/WF08_recordatorios.json` | **Schedule** cada hora | **EP08_Recordatorios** | EP01, EP04, EP06 |
 | WF09 — Notificaciones | `n8n/WF09_notificaciones.json` | **Execute Sub-workflow Trigger** | **EP09_Notificaciones** | EP01, EP03 |
 | WF10 — EventPass Assistant | `n8n/WF10_eventpass_assistant.json` | **Chat Trigger** | **EP10_Soporte** (Conversaciones, Mensajes) | EP04, EP06 (solo lectura) |
+| WF11 — Check-in digital | `n8n/WF11_checkin_digital.json` | Webhook `POST /ep/checkin` | **EP11_Checkin** (Checkins) + actualiza el estado en EP06 | EP04, EP06 |
 
 Cada workflow tiene una nota adhesiva en el lienzo con su responsabilidad, y nodos con nombres que dicen lo que hacen: *Control email duplicado*, *Generar hash, salt y usuario_id*, *Validar expiración*, *Calcular cupos*, *Ordenar lista de espera*, etc.
 
@@ -151,6 +155,7 @@ Base: `EP_N8N_BASE_URL`, por ejemplo `https://tu-instancia.app.n8n.cloud/webhook
 | POST | `/ep/inscripciones` | `listar` (session_token) | WF06 | 200, 401 |
 | POST | `/ep/inscripciones` | `actualizar` (session_token, inscripcion_id, nombre_acreditacion, observaciones) | WF06 | 200, 400, 404, 409 |
 | POST | `/ep/inscripciones` | `cancelar` (session_token, inscripcion_id) | WF06 | 200, 404, 409 |
+| POST | `/ep/checkin` | inscripcion_id, evento_id | WF11 | 200, 404, 409 |
 | POST | URL del Chat Trigger | `action=sendMessage`, sessionId, chatInput | WF10 | 200 |
 
 Además del webhook, en el catálogo se puede enviar `visitor_id` (identificador anónimo del navegador) para el log de consultas.
@@ -164,7 +169,8 @@ Además del webhook, en el catálogo se puede enviar `visitor_id` (identificador
 | Código de vinculación | `PENDIENTE` · `USADO` · `EXPIRADO` · `CANCELADO` | EP03 / Codigos_Vinculacion |
 | Vinculación Telegram | `ACTIVA` · `INACTIVA` | EP03 / Vinculaciones |
 | Evento | `BORRADOR` · `PUBLICADO` · `CERRADO` · `CANCELADO` | EP04 / Eventos |
-| Inscripción | `CONFIRMADA` · `LISTA_ESPERA` · `CANCELADA` | EP06 / Inscripciones |
+| Inscripción | `CONFIRMADA` · `LISTA_ESPERA` · `CANCELADA` · `ASISTIO` | EP06 / Inscripciones |
+| Intento de check-in | `EXITOSO` · `RECHAZADO` · `DUPLICADO` | EP11 / Checkins |
 | Recordatorio | `PENDIENTE` · `ENVIADO` · `ERROR` · `OMITIDO` | EP08 / Recordatorios |
 | Canal de notificación | `PENDIENTE` · `ENVIADO` · `ERROR` · `NO_APLICA` | EP09 / Notificaciones |
 | Conversación | `ABIERTA` · `CERRADA` | EP10 / Conversaciones |
@@ -208,10 +214,11 @@ Los hashes de los usuarios de prueba se calcularon con el mismo algoritmo en Pyt
 | WF07 reasignación | estado de la inscripción | Solo se promueven filas en `LISTA_ESPERA`; repetir la ejecución sin cupos no cambia nada |
 | WF08 recordatorios | `usuario_id|evento_id|tipo_recordatorio` | Si la clave ya está `ENVIADO` u `OMITIDO`, no se procesa; `ERROR` se reintenta. Se escribe con *append or update* sobre la clave |
 | WF09 notificaciones | `clave_idempotencia` (la envía quien llama) | Si esa clave ya se entregó por algún canal, no se reenvía |
+| WF11 check-in | `inscripcion_id` | Si ya hay un check-in `EXITOSO` o la inscripción está en `ASISTIO` → `409 DUPLICADO`, sin tocar la inscripción |
 
 ## 11. Lista de espera y reasignación
 
-**Al inscribirse (WF06).** Los cupos se calculan siempre como `capacidad − inscripciones CONFIRMADAS`; no existe una columna manual de cupos. Si hay cupo, la inscripción queda **CONFIRMADA**; si no, queda en **LISTA_ESPERA** con su posición en `orden_espera`.
+**Al inscribirse (WF06).** Los cupos se calculan siempre como `capacidad − inscripciones CONFIRMADA o ASISTIO`; no existe una columna manual de cupos. Si hay cupo, la inscripción queda **CONFIRMADA**; si no, queda en **LISTA_ESPERA** con su posición en `orden_espera`.
 
 **Al cancelar (WF06).** La inscripción pasa a `CANCELADA` y se libera el cupo.
 
@@ -232,6 +239,7 @@ Ejemplo: con 2 cupos libres y 5 personas en espera, la 1 y la 2 quedan `CONFIRMA
 - WF07: reasignación de cupo.
 - WF08: recordatorios de 24 h y 2 h.
 - WF04: evento cancelado, o cambio de fecha, hora o lugar.
+- WF11: check-in registrado (ingreso al evento).
 
 **Entrada:** `usuario_id, tipo, titulo, mensaje, evento_id, inscripcion_id`, más `clave_idempotencia` y un campo opcional `meta` que se devuelve tal cual a quien llama.
 
@@ -255,7 +263,7 @@ Para inscribirse es obligatorio tener Telegram vinculado, así cada aviso de ins
 
 ## 14. Datos de prueba
 
-El script [`docs/setup/crear_hojas.gs`](docs/setup/crear_hojas.gs) crea los 10 archivos con encabezados y estos datos. Las fechas se calculan desde el día en que lo ejecutas.
+El script [`docs/setup/crear_hojas.gs`](docs/setup/crear_hojas.gs) crea los 11 archivos con encabezados y estos datos. Las fechas se calculan desde el día en que lo ejecutas.
 
 | Disciplina | Adultos | Niños |
 |---|---|---|
@@ -290,7 +298,7 @@ La guía detallada está en [docs/despliegue.md](docs/despliegue.md). Resumen:
 3. **n8n, credenciales:** crea Google Sheets OAuth2, Gmail OAuth2, Telegram API, Google Gemini (PaLM) API y una Basic Auth para los formularios de administración.
 4. **n8n, WF09 primero:** importa `n8n/WF09_notificaciones.json`, asígnale credenciales y copia su ID desde la URL del workflow.
 5. **IDs:** `cp n8n/ids.example.json n8n/ids.json`, completa los IDs y ejecuta `python3 scripts/configurar_n8n.py`.
-6. **Importar el resto:** importa los archivos de `n8n/configurado/`, asigna las credenciales y **activa** los 10 workflows.
+6. **Importar el resto:** importa los archivos de `n8n/configurado/`, asigna las credenciales y **activa** los 11 workflows.
 7. **Vercel:** importa el repositorio y define las 3 variables. Vercel ejecuta `node scripts/generar-config.mjs` y publica `public/`.
 8. **Exportar:** al terminar, descarga cada workflow desde n8n (*Download*) y reemplaza los JSON de `n8n/` con los nombres obligatorios.
 
@@ -310,19 +318,19 @@ npx serve public            # o: python3 -m http.server -d public 8080
 │   ├── index.html
 │   ├── css/styles.css
 │   └── js/
-│       ├── app.js              # Enrutador y vistas (agenda, evento, registro, perfil, inscripciones)
+│       ├── app.js              # Enrutador y vistas (agenda, evento, registro, perfil, inscripciones, check-in)
 │       ├── api.js              # Único punto de contacto con n8n
 │       ├── sesion.js           # Token de sesión y visitor_id
 │       ├── chat.js             # Widget del asistente (WF10)
 │       ├── ui.js               # Escape HTML, fechas y estados de carga/error
 │       └── config.js           # Generado en el build desde las variables de entorno
-├── n8n/                        # Los 10 workflows exportables + ids.example.json
+├── n8n/                        # Los 11 workflows exportables + ids.example.json
 ├── docs/
 │   ├── google-sheets.md        # Columnas de cada hoja
 │   ├── endpoints.md            # Ejemplos de solicitudes y respuestas
 │   ├── despliegue.md           # Guía paso a paso
 │   ├── pruebas.md              # Casos de prueba
-│   └── setup/crear_hojas.gs    # Crea los 10 Google Sheets con datos de prueba
+│   └── setup/crear_hojas.gs    # Crea los 11 Google Sheets con datos de prueba
 ├── scripts/
 │   ├── generar-config.mjs      # Build de Vercel
 │   └── configurar_n8n.py       # Escribe los IDs reales en los workflows
@@ -340,3 +348,135 @@ npx serve public            # o: python3 -m http.server -d public 8080
 - Las sesiones vencen a las 8 horas y se invalidan si la cuenta se desactiva.
 - Los formularios de administración de WF04 están protegidos con Basic Auth.
 - Una inscripción de otro usuario se trata como inexistente (`404`), así no se revela que existe.
+
+## 19. Examen — Check-in digital
+
+### Descripción
+
+EventPass ahora controla el **ingreso real** de los asistentes. En la entrada del evento, la persona encargada abre **Check-in** en el menú (`#/checkin`), elige el evento y escribe el código de inscripción del asistente. Cada usuario ve ese código (`INS-…`) en *Mis inscripciones*.
+
+Como en el resto del proyecto, la web solo envía la solicitud y muestra el resultado. Las reglas viven en **WF11 — Check-in digital** (`n8n/WF11_checkin_digital.json`). WF11 reutiliza EP04 (eventos), EP06 (inscripciones) y el servicio central **WF09**. Todos los intentos se guardan en un archivo nuevo, **EP11_Checkin**.
+
+```mermaid
+flowchart LR
+    W["Web · #/checkin"] -- "POST /ep/checkin" --> WH[Webhook]
+    WH --> L["Leer inscripción (EP06)<br/>Leer evento (EP04)<br/>Leer historial (EP11)"]
+    L --> V{"IF en cadena:<br/>existe · evento · corresponde ·<br/>habilitado · duplicado · CONFIRMADA"}
+    V --> G[Generar checkin_id] --> R[Registrar en Checkins] --> S{Según resultado}
+    S -- EXITOSO --> U["Marcar inscripción ASISTIO (EP06)"] --> OK[Respond 200] --> N["Execute Sub-workflow → WF09<br/>Gmail + Telegram"]
+    S -- DUPLICADO --> D[Respond 409]
+    S -- RECHAZADO --> X[Respond 404 / 409]
+```
+
+### Endpoint
+
+`POST {EP_N8N_BASE_URL}/ep/checkin`. Es un Webhook con `Respond to Webhook` y `Allowed Origins = *`, igual que los demás.
+
+### Petición
+
+```json
+{ "inscripcion_id": "INS-DEMO001", "evento_id": "EVT-NAT-ADU" }
+```
+
+Los dos campos son obligatorios. n8n les quita los espacios y los pasa a mayúsculas.
+
+### Respuesta
+
+| Resultado | HTTP | `ok` |
+|---|---|---|
+| `EXITOSO` | 200 | `true` |
+| `DUPLICADO` | 409 | `false` |
+| `RECHAZADO` | 404 (la inscripción o el evento no existen) · 409 (las demás reglas) | `false` |
+
+Éxito:
+```json
+{ "ok": true, "resultado": "EXITOSO", "mensaje": "Check-in realizado correctamente.",
+  "detalle": "Ingreso registrado. Estado CONFIRMADA → ASISTIO.",
+  "checkin": { "checkin_id": "CHK-…", "inscripcion_id": "INS-DEMO001", "evento_id": "EVT-NAT-ADU",
+               "fecha_checkin": "2026-10-29T14:05:11.000Z", "estado_inscripcion": "ASISTIO" },
+  "participante": "…", "evento": "Copa Máster de Natación 50 m" }
+```
+
+Duplicado (incluye el check-in original):
+```json
+{ "ok": false, "resultado": "DUPLICADO", "mensaje": "El ingreso ya había sido registrado.",
+  "error": "El ingreso ya había sido registrado. Ya existe el check-in EXITOSO CHK-….",
+  "checkin_original": { "checkin_id": "CHK-…", "fecha_checkin": "2026-10-29T14:05:11.000Z" }, "checkin": { … } }
+```
+
+Rechazo:
+```json
+{ "ok": false, "resultado": "RECHAZADO", "mensaje": "Check-in rechazado.",
+  "error": "Check-in rechazado. La inscripción está en LISTA_ESPERA; solo CONFIRMADA puede ingresar.", "checkin": { … } }
+```
+
+La web muestra los tres casos con colores distintos: verde para el éxito, amarillo para el duplicado y rojo para el rechazo. También muestra el motivo, el asistente, el evento, el `checkin_id` y la fecha y hora.
+
+### Validaciones implementadas
+
+Un nodo Code (*Cruzar inscripción, evento e historial*) reúne los datos y luego hay un **IF por regla**. Cada rama falsa va a un nodo *Set* que deja el resultado y el motivo:
+
+| # | Nodo IF | Si falla |
+|---|---|---|
+| 1 | ¿Inscripción existe? | `RECHAZADO` 404: *La inscripción … no existe* |
+| 2 | ¿Evento existe? | `RECHAZADO` 404: *El evento … no existe* |
+| 3 | ¿Inscripción corresponde al evento? | `RECHAZADO` 409: *La inscripción pertenece a EVT-001, no a EVT-002* |
+| 4 | ¿Evento habilitado? (no `CANCELADO` ni `BORRADOR`) | `RECHAZADO` 409 |
+| 5 | ¿Check-in previo? (duplicado) | `DUPLICADO` 409 |
+| 6 | ¿Estado CONFIRMADA? | `RECHAZADO` 409: `LISTA_ESPERA`, `CANCELADA` o cualquier otro estado |
+
+El duplicado se revisa **antes** que el estado. Así, si alguien repite un ingreso ya hecho (la inscripción ya está en `ASISTIO`), la respuesta es `DUPLICADO` y no un rechazo por estado.
+
+### Google Sheets: EP11_Checkin
+
+Es un archivo nuevo e independiente: `EP11_Checkin`, hoja **`Checkins`**. La información del check-in **no** se guarda en el archivo de inscripciones. Para crearlo sin tocar los demás, ejecuta la función `crearHojaCheckin` de [`docs/setup/crear_hojas.gs`](docs/setup/crear_hojas.gs) y agrega su ID a `n8n/ids.json` como `EP11_Checkin`.
+
+| Columna | Contenido |
+|---|---|
+| `checkin_id` | `CHK-…`, lo genera el nodo *Generar checkin_id* |
+| `inscripcion_id` | Lo que envió la web |
+| `evento_id` | Lo que envió la web |
+| `usuario_id` | Dueño de la inscripción (vacío si no existe) |
+| `fecha_checkin` | Fecha y hora ISO del intento |
+| `resultado` | `EXITOSO` · `RECHAZADO` · `DUPLICADO` |
+| `detalle` | Motivo legible, por ejemplo *La inscripción está en CANCELADA…* |
+
+Se registran **todos los intentos**, no solo los exitosos, para saber qué ocurrió en cada uno.
+
+### Cambio de estado CONFIRMADA → ASISTIO
+
+Solo en la rama `EXITOSO`, el nodo *Marcar inscripción ASISTIO* hace un **update** en EP06 / Inscripciones. Busca la fila por `inscripcion_id` y escribe únicamente `estado = ASISTIO` y `fecha_actualizacion`. No toca otras columnas ni otras inscripciones. En los casos `DUPLICADO` y `RECHAZADO` no se escribe nada en EP06.
+
+Para no romper los cupos ni la lista de espera, la función compartida `confirmadasDe` de WF04, WF05, WF06, WF07, WF08 y WF10 ahora cuenta `CONFIRMADA` **y** `ASISTIO` como cupos ocupados. Si no fuera así, un asistente que ya entró liberaría su cupo y WF07 se lo daría a alguien de la lista de espera. En *Mis inscripciones* el estado aparece como **Asistió** y no se puede editar ni cancelar.
+
+### Cómo se evita el check-in duplicado
+
+1. Antes de registrar, WF11 lee el historial de `Checkins` y busca un intento `EXITOSO` con el mismo `inscripcion_id`.
+2. Como segunda defensa, si la inscripción ya está en `ASISTIO` también se trata como duplicado, aunque falte la fila del historial.
+3. Un duplicado se guarda en `Checkins` con `resultado = DUPLICADO`, no crea otro check-in válido, no cambia el estado y no vuelve a notificar. Responde `409` con el `checkin_id` y la fecha del primer ingreso.
+4. La llamada a WF09 usa `clave_idempotencia = CHECKIN_REGISTRADO|<inscripcion_id>`, así que WF09 tampoco reenvía el aviso.
+
+### Integración con WF09 Notificaciones
+
+Después de responder a la web, *Preparar notificación de check-in* arma la entrada estándar de WF09: `usuario_id, tipo = CHECKIN_REGISTRADO, titulo, mensaje, evento_id, inscripcion_id, clave_idempotencia`. Luego *Notificar check-in (WF09)* la envía con **Execute Sub-workflow**. WF11 no tiene nodos de Gmail ni de Telegram: WF09 busca el correo y el `chat_id`, envía por **Gmail + Telegram** y registra cada canal en EP09.
+
+### Instalación
+
+1. Ejecuta `crearHojaCheckin` en Apps Script y agrega `"EP11_Checkin": "<id>"` a `n8n/ids.json`.
+2. Ejecuta `python3 scripts/configurar_n8n.py`.
+3. Importa `n8n/configurado/WF11_checkin_digital.json`, asigna la credencial de Google Sheets y actívalo.
+4. Vuelve a importar WF04, WF05, WF06, WF07, WF08 y WF10, o cambia en cada uno la línea de `confirmadasDe`, para que cuenten `ASISTIO` como cupo ocupado.
+
+### Casos de prueba
+
+Con los datos de prueba:
+
+| Caso | Petición | Resultado esperado |
+|---|---|---|
+| 1. Válido | `INS-DEMO001` + `EVT-NAT-ADU` (CONFIRMADA) | `200 EXITOSO`; EP06 queda en `ASISTIO`; fila `EXITOSO` en Checkins; correo + Telegram |
+| 2. Duplicado | Repetir el caso 1 | `409 DUPLICADO`; el estado no cambia y no se envía otro aviso |
+| 3. Inscripción no válida | `INS-DEMO011` + `EVT-NAT-ADU` (LISTA_ESPERA) o `INS-DEMO060` + `EVT-CRO-ADU` (CANCELADA) | `409 RECHAZADO` |
+| 4. Evento incorrecto | `INS-DEMO002` (de `EVT-NAT-ADU`) + `EVT-ATL-ADU` | `409 RECHAZADO`: *pertenece a EVT-NAT-ADU* |
+| Extra | `INS-NOEXISTE` + `EVT-NAT-ADU` | `404 RECHAZADO` |
+
+Para recibir de verdad el correo y el Telegram, inscríbete con tu propia cuenta (con Telegram vinculado) y haz el check-in con ese código.

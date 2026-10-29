@@ -238,3 +238,20 @@ Escribe: **WF10** · Lo leen también: —
 | `rol` |  |
 | `mensaje` |  |
 | `timestamp` |  |
+
+## EP11_Checkin
+Escribe: **WF11** · Lo leen también: —
+
+Archivo independiente del examen (check-in digital). Guarda **todos** los intentos; el estado `ASISTIO` se escribe en EP06.
+
+### Hoja `Checkins`
+
+| Columna | Nota |
+|---|---|
+| `checkin_id` | `CHK-…` |
+| `inscripcion_id` |  |
+| `evento_id` | El que envió la solicitud |
+| `usuario_id` | Dueño de la inscripción (vacío si no existe) |
+| `fecha_checkin` | ISO 8601 |
+| `resultado` | `EXITOSO` · `RECHAZADO` · `DUPLICADO` |
+| `detalle` | Motivo legible del resultado |

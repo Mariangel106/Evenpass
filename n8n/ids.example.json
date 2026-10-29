@@ -9,5 +9,6 @@
   "EP08_Recordatorios": "ID_DEL_SPREADSHEET",
   "EP09_Notificaciones": "ID_DEL_SPREADSHEET",
   "EP10_Soporte": "ID_DEL_SPREADSHEET",
+  "EP11_Checkin": "ID_DEL_SPREADSHEET",
   "WF09": "ID_DEL_WORKFLOW_WF09_EN_N8N"
 }

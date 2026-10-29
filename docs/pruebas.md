@@ -86,6 +86,17 @@ Lista para validar la solución completa una vez desplegada. Cada caso indica d�
 | 43 | Pedir *Inscríbeme en la carrera 10K* | Dice que no puede hacerlo y explica cómo hacerlo en la web |
 | 44 | Revisar EP10 | Una fila en Conversaciones; en Mensajes `SYSTEM`, `USER`, `ASSISTANT`… con el mismo `conversation_id` |
 
+## Check-in digital (WF11) — examen
+
+| # | Acción | Resultado esperado |
+|---|---|---|
+| 48 | Check-in de `INS-DEMO001` en `EVT-NAT-ADU` | `EXITOSO`; EP06 en `ASISTIO`; fila `EXITOSO` en EP11 / Checkins; EP09 con `CHECKIN_REGISTRADO` |
+| 49 | Repetir el mismo check-in | `DUPLICADO` (409); el estado no cambia y no hay un segundo aviso |
+| 50 | Check-in de `INS-DEMO011` (LISTA_ESPERA) o `INS-DEMO060` (CANCELADA) | `RECHAZADO` (409) con el estado en el detalle |
+| 51 | Check-in de `INS-DEMO002` en `EVT-ATL-ADU` | `RECHAZADO` (409): pertenece a `EVT-NAT-ADU` |
+| 52 | Check-in de `INS-NOEXISTE` | `RECHAZADO` (404) |
+| 53 | Tras la prueba 48, abrir la Copa Máster y ejecutar WF07 | Siguen 10 cupos ocupados; nadie sale de la lista de espera |
+
 ## Estados de la interfaz
 
 | # | Acción | Resultado esperado |

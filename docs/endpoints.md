@@ -112,6 +112,20 @@ Devuelve `{ ok, telegram_vinculado, total, inscripciones: [ { inscripcion_id, es
 ```
 La inscripción pasa a `CANCELADA` y se notifica al usuario. Si era `CONFIRMADA`, WF07 asigna el cupo en su siguiente ejecución.
 
+## WF11 — `POST /ep/checkin`
+
+```json
+{ "inscripcion_id": "INS-DEMO001", "evento_id": "EVT-NAT-ADU" }
+```
+`200`
+```json
+{ "ok": true, "resultado": "EXITOSO", "mensaje": "Check-in realizado correctamente.",
+  "detalle": "Ingreso registrado. Estado CONFIRMADA → ASISTIO.",
+  "checkin": { "checkin_id": "CHK-…", "inscripcion_id": "INS-DEMO001", "evento_id": "EVT-NAT-ADU", "fecha_checkin": "…", "estado_inscripcion": "ASISTIO" },
+  "participante": "…", "evento": "Copa Máster de Natación 50 m" }
+```
+`409 DUPLICADO`: el ingreso ya estaba registrado (devuelve `checkin_original`). `409 RECHAZADO`: la inscripción es de otro evento, el evento está cancelado o la inscripción no está `CONFIRMADA`. `404 RECHAZADO`: la inscripción o el evento no existen. En todos los casos `error` trae el motivo.
+
 ## WF10 — Chat Trigger
 
 `POST <EP_CHAT_URL>`

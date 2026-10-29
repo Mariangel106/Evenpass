@@ -1,5 +1,5 @@
 /**
- * EventPass — Creación de los 10 archivos de Google Sheets con datos de prueba.
+ * EventPass — Creación de los 11 archivos de Google Sheets con datos de prueba.
  *
  * Cómo usarlo:
  *   1. Entra a https://script.google.com → Nuevo proyecto.
@@ -7,10 +7,12 @@
  *   3. Selecciona la función crearHojasEventPass y pulsa Ejecutar (acepta los permisos).
  *   4. Abre "Registro de ejecución": verás el JSON con los IDs. Cópialo en n8n/ids.json.
  *
- * Crea la carpeta "EventPass — Google Sheets" en tu Drive con EP01…EP10, una hoja por pestaña,
+ * Crea la carpeta "EventPass — Google Sheets" en tu Drive con EP01…EP11, una hoja por pestaña,
  * encabezados en la fila 1 y formato de texto plano (evita que Sheets convierta fechas o IDs).
  * Las fechas de los eventos se calculan desde el día en que lo ejecutas.
  * Contraseña de todos los usuarios de prueba: EventPass2026!
+ *
+ * ¿Ya tienes EP01…EP10? Ejecuta solo crearHojaCheckin: crea EP11_Checkin (examen, WF11) y muestra su ID.
  */
 
 const ESQUEMA = {
@@ -190,6 +192,17 @@ const ESQUEMA = {
       "rol",
       "mensaje",
       "timestamp"
+    ]
+  },
+  "EP11_Checkin": {
+    "Checkins": [
+      "checkin_id",
+      "inscripcion_id",
+      "evento_id",
+      "usuario_id",
+      "fecha_checkin",
+      "resultado",
+      "detalle"
     ]
   }
 };
@@ -1228,29 +1241,40 @@ function construirSemilla(ahora) {
   };
 }
 
+function crearLibro(archivo, carpeta, semilla) {
+  const libro = SpreadsheetApp.create(archivo);
+  if (carpeta) DriveApp.getFileById(libro.getId()).moveTo(carpeta);
+  Object.keys(ESQUEMA[archivo]).forEach((nombreHoja, indice) => {
+    const hoja = indice === 0 ? libro.getSheets()[0].setName(nombreHoja) : libro.insertSheet(nombreHoja);
+    const columnas = ESQUEMA[archivo][nombreHoja];
+    hoja.getRange(1, 1, hoja.getMaxRows(), columnas.length).setNumberFormat('@');
+    hoja.getRange(1, 1, 1, columnas.length).setValues([columnas]).setFontWeight('bold').setBackground('#13202e').setFontColor('#ffffff');
+    hoja.setFrozenRows(1);
+    const filas = (semilla[archivo] && semilla[archivo][nombreHoja]) || [];
+    if (filas.length) {
+      hoja.getRange(2, 1, filas.length, columnas.length)
+        .setValues(filas.map((fila) => columnas.map((c) => (fila[c] === undefined || fila[c] === null ? '' : String(fila[c])))));
+    }
+    hoja.autoResizeColumns(1, columnas.length);
+  });
+  return libro.getId();
+}
+
 function crearHojasEventPass() {
   const carpeta = DriveApp.createFolder('EventPass — Google Sheets');
   const semilla = construirSemilla(new Date());
   const ids = {};
   Object.keys(ESQUEMA).forEach((archivo) => {
-    const libro = SpreadsheetApp.create(archivo);
-    DriveApp.getFileById(libro.getId()).moveTo(carpeta);
-    Object.keys(ESQUEMA[archivo]).forEach((nombreHoja, indice) => {
-      const hoja = indice === 0 ? libro.getSheets()[0].setName(nombreHoja) : libro.insertSheet(nombreHoja);
-      const columnas = ESQUEMA[archivo][nombreHoja];
-      hoja.getRange(1, 1, hoja.getMaxRows(), columnas.length).setNumberFormat('@');
-      hoja.getRange(1, 1, 1, columnas.length).setValues([columnas]).setFontWeight('bold').setBackground('#13202e').setFontColor('#ffffff');
-      hoja.setFrozenRows(1);
-      const filas = (semilla[archivo] && semilla[archivo][nombreHoja]) || [];
-      if (filas.length) {
-        hoja.getRange(2, 1, filas.length, columnas.length)
-          .setValues(filas.map((fila) => columnas.map((c) => (fila[c] === undefined || fila[c] === null ? '' : String(fila[c])))));
-      }
-      hoja.autoResizeColumns(1, columnas.length);
-    });
-    ids[archivo] = libro.getId();
+    ids[archivo] = crearLibro(archivo, carpeta, semilla);
   });
   ids.WF09 = 'ID_DEL_WORKFLOW_WF09_EN_N8N';
   Logger.log('Copia este JSON en n8n/ids.json:\n' + JSON.stringify(ids, null, 2));
   Logger.log('Carpeta: ' + carpeta.getUrl());
+}
+
+// Solo para el examen: crea EP11_Checkin (hoja Checkins) junto a los archivos que ya existen.
+function crearHojaCheckin() {
+  const carpetas = DriveApp.getFoldersByName('EventPass — Google Sheets');
+  const id = crearLibro('EP11_Checkin', carpetas.hasNext() ? carpetas.next() : null, {});
+  Logger.log('Agrega a n8n/ids.json: "EP11_Checkin": "' + id + '"');
 }
