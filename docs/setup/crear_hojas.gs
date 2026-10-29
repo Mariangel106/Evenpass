@@ -1,5 +1,5 @@
 /**
- * EventPass — Creación de los 10 archivos de Google Sheets con datos de prueba.
+ * EventPass — Creación de los 11 archivos de Google Sheets con datos de prueba.
  *
  * Cómo usarlo:
  *   1. Entra a https://script.google.com → Nuevo proyecto.
@@ -7,7 +7,7 @@
  *   3. Selecciona la función crearHojasEventPass y pulsa Ejecutar (acepta los permisos).
  *   4. Abre "Registro de ejecución": verás el JSON con los IDs. Cópialo en n8n/ids.json.
  *
- * Crea la carpeta "EventPass — Google Sheets" en tu Drive con EP01…EP10, una hoja por pestaña,
+ * Crea la carpeta "EventPass — Google Sheets" en tu Drive con EP01…EP11, una hoja por pestaña,
  * encabezados en la fila 1 y formato de texto plano (evita que Sheets convierta fechas o IDs).
  * Las fechas de los eventos se calculan desde el día en que lo ejecutas.
  * Contraseña de todos los usuarios de prueba: EventPass2026!
@@ -190,6 +190,17 @@ const ESQUEMA = {
       "rol",
       "mensaje",
       "timestamp"
+    ]
+  },
+  "EP11_Checkin": {
+    "Checkins": [
+      "checkin_id",
+      "inscripcion_id",
+      "evento_id",
+      "usuario_id",
+      "fecha_checkin",
+      "resultado",
+      "detalle"
     ]
   }
 };

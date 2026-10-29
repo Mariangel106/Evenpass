@@ -7,7 +7,7 @@ const main = document.getElementById('contenido');
 const nav = document.getElementById('nav');
 
 // ---------------------------------------------------------------------------
-// Enrutador por hash: #/  #/evento/ID  #/ingresar  #/registro  #/perfil  #/mis-inscripciones
+// Enrutador por hash: #/  #/evento/ID  #/ingresar  #/registro  #/perfil  #/mis-inscripciones  #/checkin[/INS/EVT]
 // ---------------------------------------------------------------------------
 const rutas = [
   [/^#?\/?$/, vistaAgenda],
@@ -16,6 +16,7 @@ const rutas = [
   [/^#\/registro$/, vistaRegistro],
   [/^#\/perfil$/, vistaPerfil, true],
   [/^#\/mis-inscripciones$/, vistaInscripciones, true],
+  [/^#\/checkin(?:\/([\w-]+)\/([\w-]+))?$/, vistaCheckin],
 ];
 
 async function navegar() {
@@ -41,9 +42,9 @@ function pintarNav() {
   const actual = location.hash || '#/';
   const enlace = (href, texto) => `<a href="${href}"${actual === href ? ' aria-current="page"' : ''}>${texto}</a>`;
   nav.innerHTML = sesion.activa()
-    ? `${enlace('#/', 'Agenda')}${enlace('#/mis-inscripciones', 'Mis inscripciones')}${enlace('#/perfil', esc(sesion.usuario().nombre.split(' ')[0]))}
+    ? `${enlace('#/', 'Agenda')}${enlace('#/mis-inscripciones', 'Mis inscripciones')}${enlace('#/checkin', 'Check-in')}${enlace('#/perfil', esc(sesion.usuario().nombre.split(' ')[0]))}
        <button type="button" class="nav-salir" id="salir">Salir</button>`
-    : `${enlace('#/', 'Agenda')}${enlace('#/ingresar', 'Ingresar')}<a class="nav-cta" href="#/registro">Crear cuenta</a>`;
+    : `${enlace('#/', 'Agenda')}${enlace('#/checkin', 'Check-in')}${enlace('#/ingresar', 'Ingresar')}<a class="nav-cta" href="#/registro">Crear cuenta</a>`;
   document.getElementById('salir')?.addEventListener('click', cerrarSesion);
 }
 
@@ -492,7 +493,7 @@ async function vistaPerfil() {
 // ---------------------------------------------------------------------------
 // Mis inscripciones: consultar, editar y cancelar
 // ---------------------------------------------------------------------------
-const ETIQUETA_ESTADO = { CONFIRMADA: 'Confirmada', LISTA_ESPERA: 'Lista de espera', CANCELADA: 'Cancelada' };
+const ETIQUETA_ESTADO = { CONFIRMADA: 'Confirmada', LISTA_ESPERA: 'Lista de espera', CANCELADA: 'Cancelada', ASISTIO: 'Asistió' };
 
 async function vistaInscripciones() {
   main.innerHTML = `<section class="pagina">${estadoCarga('Cargando tus inscripciones…')}</section>`;
@@ -515,6 +516,7 @@ async function vistaInscripciones() {
           <h2><a href="#/evento/${esc(i.evento_id)}">${esc(e.nombre)}</a></h2>
           <p>${e.inicio ? `${esc(fechaLarga(e.inicio))}, ${esc(horaDe(e.inicio))} · ${esc(e.lugar)}` : ''}</p>
           <p class="inscripcion-acreditacion">Acreditación: ${esc(i.nombre_acreditacion)}${i.observaciones ? ` · ${esc(i.observaciones)}` : ''}</p>
+          <p class="inscripcion-acreditacion">Código de ingreso: <strong>${esc(i.inscripcion_id)}</strong> · Evento ${esc(i.evento_id)}</p>
         </div>
         <div class="inscripcion-estado">
           <p class="estado estado-${i.estado.toLowerCase()}">${ETIQUETA_ESTADO[i.estado] || i.estado}</p>
@@ -591,6 +593,74 @@ async function vistaInscripciones() {
       }
     });
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Check-in digital (WF11): registra el ingreso real en la puerta del evento.
+// n8n decide el resultado: EXITOSO, DUPLICADO o RECHAZADO; aquí solo se pinta.
+// ---------------------------------------------------------------------------
+function vistaCheckin(inscripcionId = '', eventoId = '') {
+  main.innerHTML = `
+    <section class="pagina pagina-estrecha">
+      <h1 class="titulo">Check-in</h1>
+      <p class="ayuda-larga">Registra el ingreso de un asistente con el código de su inscripción y el evento al que entra. Solo ingresan inscripciones confirmadas, una sola vez.</p>
+      <form class="form" id="form-checkin" novalidate>
+        <label>Código de inscripción<input name="inscripcion_id" value="${esc(inscripcionId)}" placeholder="INS-…" autocomplete="off" required /></label>
+        <label>Evento<input name="evento_id" value="${esc(eventoId)}" placeholder="EVT-…" list="eventos-checkin" autocomplete="off" required />
+          <span class="ayuda">Escribe el código o elígelo de la lista.</span></label>
+        <datalist id="eventos-checkin"></datalist>
+        <button class="boton boton-senal" type="submit">Registrar ingreso</button>
+        <p class="form-estado" role="alert"></p>
+      </form>
+      <div id="resultado-checkin" aria-live="polite"></div>
+    </section>`;
+  // Sugerencias de eventos desde el catálogo; si falla, el campo sigue siendo de texto libre.
+  api.catalogo({ tipo: 'LISTADO', visitor_id: visitorId() }).then((datos) => {
+    document.getElementById('eventos-checkin').innerHTML = (datos.eventos || [])
+      .map((e) => `<option value="${esc(e.evento_id)}">${esc(e.nombre)}</option>`).join('');
+  }).catch(() => {});
+
+  const form = document.getElementById('form-checkin');
+  const resultado = document.getElementById('resultado-checkin');
+  form.addEventListener('submit', (ev) => {
+    resultado.innerHTML = '';
+    enviarFormulario(ev, form, 'Registrando…', async (d) => {
+      if (!form.checkValidity()) throw new ErrorApi('Escribe el código de inscripción y el evento.');
+      try {
+        pintarResultadoCheckin(resultado, await api.checkin({ inscripcion_id: d.inscripcion_id, evento_id: d.evento_id }));
+        form.reset();
+      } catch (error) {
+        // DUPLICADO y RECHAZADO llegan como 409/404 con el detalle en el cuerpo.
+        if (!error.datos?.resultado) throw error;
+        pintarResultadoCheckin(resultado, error.datos);
+      }
+    });
+  });
+}
+
+function pintarResultadoCheckin(caja, r) {
+  const cuando = (iso) => (iso ? `${fechaLarga(iso)}, ${horaDe(iso)}` : '');
+  if (r.resultado === 'EXITOSO') {
+    caja.innerHTML = `
+      <div class="nota nota-ok checkin-resultado" role="status">
+        <p class="checkin-titulo">Check-in realizado correctamente</p>
+        <p><strong>${esc(r.inscripcion.nombre_acreditacion)}</strong> ingresó a <strong>${esc(r.evento.nombre)}</strong>.</p>
+        <p>${esc(cuando(r.checkin.fecha_checkin))} · Check-in ${esc(r.checkin.checkin_id)} · Inscripción ${esc(r.inscripcion.inscripcion_id)}: ${esc(r.inscripcion.estado_anterior)} → ${esc(r.inscripcion.estado)}</p>
+        <p class="ayuda">El asistente recibe la confirmación por correo y Telegram.</p>
+      </div>`;
+  } else if (r.resultado === 'DUPLICADO') {
+    caja.innerHTML = `
+      <div class="nota nota-aviso checkin-resultado" role="status">
+        <p class="checkin-titulo">El ingreso ya había sido registrado</p>
+        <p>La inscripción ${esc(r.inscripcion?.inscripcion_id)} ya hizo check-in${r.checkin?.fecha_checkin ? ` el ${esc(cuando(r.checkin.fecha_checkin))}` : ''}${r.checkin?.checkin_id ? ` (${esc(r.checkin.checkin_id)})` : ''}. No se registró un segundo ingreso.</p>
+      </div>`;
+  } else {
+    caja.innerHTML = `
+      <div class="nota nota-alerta checkin-resultado" role="status">
+        <p class="checkin-titulo">Ingreso rechazado</p>
+        <p>${esc(r.error)}</p>
+      </div>`;
+  }
 }
 
 // ---------------------------------------------------------------------------

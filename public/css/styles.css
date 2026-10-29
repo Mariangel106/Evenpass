@@ -172,6 +172,7 @@ code { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; background
 .nota p:last-child { margin: 0; }
 .nota-ok { border-left-color: var(--ok); background: var(--ok-fondo); }
 .nota-alerta { border-left-color: var(--alerta); background: var(--alerta-fondo); }
+.nota-aviso { border-left-color: var(--senal-oscura); background: #fff4cc; }
 .aviso {
   position: fixed; left: 50%; bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40;
   max-width: min(36rem, calc(100vw - 2rem)); padding: .85rem 1.2rem; border-radius: var(--radio);
@@ -258,6 +259,11 @@ code { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; background
 .estado-confirmada { background: var(--ok-fondo); color: var(--ok); }
 .estado-lista_espera { background: #fff4cc; color: #7a5a00; }
 .estado-cancelada { background: var(--cancha); color: var(--texto-suave); }
+.estado-asistio { background: var(--pizarra); color: var(--senal); }
+
+/* Check-in (WF11) --------------------------------------------------------------------------------- */
+.checkin-resultado { margin-top: 1.5rem; }
+.checkin-titulo { font: 800 1.6rem/1.05 var(--display); }
 
 /* Asistente --------------------------------------------------------------------------------------- */
 .chat { position: fixed; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); z-index: 30; }

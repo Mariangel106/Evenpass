@@ -120,3 +120,31 @@ La inscripción pasa a `CANCELADA` y se notifica al usuario. Si era `CONFIRMADA`
   "metadata": { "usuario_id": "USR-… o vacío", "visitor_id": "VIS-…" } }
 ```
 Respuesta: `{ "output": "texto del asistente", "conversation_id": "CONV-…" }`.
+
+## WF11 — Check-in digital
+
+`POST /ep/checkin`
+```json
+{ "inscripcion_id": "INS-…", "evento_id": "EVT-…" }
+```
+
+**201 — EXITOSO**
+```json
+{ "ok": true, "resultado": "EXITOSO", "mensaje": "Check-in realizado correctamente.",
+  "checkin": { "checkin_id": "CHK-…", "inscripcion_id": "INS-…", "evento_id": "EVT-…", "usuario_id": "USR-…", "fecha_checkin": "2026-10-29T12:16:56.412Z" },
+  "inscripcion": { "inscripcion_id": "INS-…", "estado_anterior": "CONFIRMADA", "estado": "ASISTIO", "nombre_acreditacion": "…" },
+  "evento": { "evento_id": "EVT-…", "nombre": "…", "fecha": "2026-11-01", "hora": "09:00", "lugar": "…" } }
+```
+
+**409 — DUPLICADO**
+```json
+{ "ok": false, "resultado": "DUPLICADO", "error": "El ingreso ya había sido registrado (jueves, 29 de octubre, 07:16 a. m.).",
+  "checkin": { "checkin_id": "CHK-… (el original)", "fecha_checkin": "…" }, "inscripcion": { "inscripcion_id": "INS-…", "estado": "ASISTIO" } }
+```
+
+**400 / 404 / 409 — RECHAZADO**
+```json
+{ "ok": false, "resultado": "RECHAZADO", "motivo": "EVENTO_NO_CORRESPONDE",
+  "error": "La inscripción INS-DEMO001 pertenece a otro evento (EVT-NAT-ADU), no a EVT-ATL-ADU.", "inscripcion_id": "INS-DEMO001", "evento_id": "EVT-ATL-ADU" }
+```
+`motivo`: `SOLICITUD_INCOMPLETA` (400) · `INSCRIPCION_INEXISTENTE` (404) · `EVENTO_INEXISTENTE` (404) · `EVENTO_NO_CORRESPONDE` (409) · `EVENTO_CANCELADO` (409) · `ESTADO_NO_PERMITIDO` (409).

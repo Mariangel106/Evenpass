@@ -55,6 +55,7 @@ export const api = {
   auth: (cuerpo) => post('/ep/auth', cuerpo),
   codigoTelegram: (session_token) => post('/ep/telegram/codigo', { session_token }),
   inscripciones: (cuerpo) => post('/ep/inscripciones', cuerpo),
+  checkin: (cuerpo) => post('/ep/checkin', cuerpo),
   catalogo: (parametros) => {
     const q = new URLSearchParams(Object.entries(parametros).filter(([, v]) => v));
     return solicitar(`${BASE}/ep/catalogo?${q}`);

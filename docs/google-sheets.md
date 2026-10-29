@@ -126,7 +126,7 @@ Escribe: **WF05** · Lo leen también: —
 | `status_http` |  |
 
 ## EP06_Inscripciones
-Escribe: **WF06** · Lo leen también: WF04, WF05, WF07, WF08, WF10
+Escribe: **WF06** · Lo leen también: WF04, WF05, WF07, WF08, WF10, WF11 (WF07 y WF11 actualizan solo el `estado`)
 
 ### Hoja `Inscripciones`
 
@@ -135,7 +135,7 @@ Escribe: **WF06** · Lo leen también: WF04, WF05, WF07, WF08, WF10
 | `inscripcion_id` |  |
 | `usuario_id` |  |
 | `evento_id` |  |
-| `estado` |  |
+| `estado` | `CONFIRMADA` · `LISTA_ESPERA` · `CANCELADA` · `ASISTIO` (lo escribe WF11 en el check-in). |
 | `fecha_inscripcion` |  |
 | `fecha_actualizacion` |  |
 | `nombre_acreditacion` |  |
@@ -238,3 +238,20 @@ Escribe: **WF10** · Lo leen también: —
 | `rol` |  |
 | `mensaje` |  |
 | `timestamp` |  |
+
+## EP11_Checkin
+Escribe: **WF11** · Lo leen también: —
+
+Archivo independiente del de inscripciones: aquí queda cada intento de ingreso; en EP06 solo cambia el `estado`.
+
+### Hoja `Checkins`
+
+| Columna | Nota |
+|---|---|
+| `checkin_id` | `CHK-…`, uno por intento. |
+| `inscripcion_id` |  |
+| `evento_id` | El que se envió en la solicitud. |
+| `usuario_id` | Vacío si la inscripción no existe. |
+| `fecha_checkin` | ISO 8601 (UTC). |
+| `resultado` | `EXITOSO` · `RECHAZADO` · `DUPLICADO` |
+| `detalle` | Motivo del rechazo, check-in previo o cambio de estado. |

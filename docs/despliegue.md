@@ -8,7 +8,7 @@ Tiempo estimado: 45–60 minutos. Necesitas una cuenta de Google, una de n8n (Cl
 2. Borra el contenido, pega todo [`setup/crear_hojas.gs`](setup/crear_hojas.gs) y guarda.
 3. Arriba, elige la función `crearHojasEventPass` y pulsa **Ejecutar**. Acepta los permisos de Drive y Sheets.
 4. Abre **Registro de ejecución**. Copia el JSON con los IDs.
-5. En tu Drive aparece la carpeta **EventPass — Google Sheets** con `EP01_Usuarios` … `EP10_Soporte`.
+5. En tu Drive aparece la carpeta **EventPass — Google Sheets** con `EP01_Usuarios` … `EP11_Checkin`.
 
 > Las fechas de los eventos se calculan desde el día en que ejecutas el script. Si lo ejecutas varios días antes de la entrega, el evento "próximo" ya habrá pasado: vuelve a ejecutarlo, o cambia la fecha en `EP04_Eventos` o desde el formulario de WF04.
 
@@ -48,15 +48,15 @@ cp n8n/ids.example.json n8n/ids.json
 python3 scripts/configurar_n8n.py
 ```
 
-Esto genera `n8n/configurado/` con los 10 workflows apuntando a tus archivos. Esa carpeta y `ids.json` no se suben a git.
+Esto genera `n8n/configurado/` con los 11 workflows apuntando a tus archivos. Esa carpeta y `ids.json` no se suben a git.
 
 > Sin Python: en cada nodo de Google Sheets elige el documento de la lista **From list**, y en cada *Execute Sub-workflow* elige WF09.
 
 ## 6. Importar y activar el resto
 
-1. Importa WF01–WF08 y WF10 desde `n8n/configurado/`. Si ya importaste WF09 desde la carpeta original, reimpórtalo desde aquí también: así queda con los IDs de tus Sheets.
+1. Importa WF01–WF08, WF10 y WF11 desde `n8n/configurado/`. Si ya importaste WF09 desde la carpeta original, reimpórtalo desde aquí también: así queda con los IDs de tus Sheets.
 2. En cada workflow asigna las credenciales en los nodos marcados con advertencia.
-3. **Activa** los 10 workflows (interruptor *Active*). Los webhooks de producción solo responden con el workflow activo.
+3. **Activa** los 11 workflows (interruptor *Active*). Los webhooks de producción solo responden con el workflow activo.
 4. Anota:
    - La URL base de producción de los webhooks, por ejemplo `https://tu-instancia.app.n8n.cloud/webhook`.
    - En WF10 → *Chat Trigger*: la **Chat URL**.
@@ -89,6 +89,7 @@ WF02_auth_sesiones.json            WF07_reasignacion_lista_espera.json
 WF03_vinculacion_telegram.json     WF08_recordatorios.json
 WF04_eventos_crud.json             WF09_notificaciones.json
 WF05_catalogo_publico.json         WF10_eventpass_assistant.json
+                                   WF11_checkin_digital.json
 ```
 
 Antes de hacer commit, revisa que los JSON no contengan tokens. n8n no exporta los secretos de las credenciales, solo su nombre e ID.

@@ -93,3 +93,18 @@ Lista para validar la solución completa una vez desplegada. Cada caso indica d�
 | 45 | Abrir la web con la red lenta (DevTools → *Slow 3G*) | Texto *Cargando la agenda…* y dorsales de carga |
 | 46 | Desactivar WF05 y recargar | Bloque de error con el mensaje y el botón *Intentar de nuevo* |
 | 47 | Enviar formularios | El botón se deshabilita mientras espera, con texto de carga |
+
+## Check-in digital (WF11)
+
+Con los datos de prueba. Para el caso 1 usa una inscripción `CONFIRMADA` de tu propia cuenta: así el aviso llega a tu correo y a tu Telegram.
+
+| # | Acción | Resultado esperado |
+|---|---|---|
+| 48 | Caso 1: check-in de una inscripción `CONFIRMADA` con su evento | 201 *Check-in realizado correctamente*; fila `EXITOSO` en EP11; la inscripción pasa a `ASISTIO` en EP06; llegan Gmail y Telegram |
+| 49 | Caso 2: repetir el mismo check-in | 409 *El ingreso ya había sido registrado*; fila `DUPLICADO` en EP11; EP06 no cambia |
+| 50 | Caso 3: `INS-DEMO011` + `EVT-NAT-ADU` (lista de espera) | 409 `RECHAZADO`, *está en lista de espera* |
+| 51 | Caso 3: `INS-DEMO060` + `EVT-CRO-ADU` (cancelada) | 409 `RECHAZADO`, *fue cancelada* |
+| 52 | Caso 4: `INS-DEMO001` (es de `EVT-NAT-ADU`) + `EVT-ATL-ADU` | 409 `RECHAZADO`, *pertenece a otro evento* |
+| 53 | `INS-NOEXISTE` + `EVT-NAT-ADU` / `INS-DEMO001` + `EVT-XXX` | 404 `RECHAZADO`, inscripción o evento inexistente |
+| 54 | Ver *Mis inscripciones* tras el caso 1 | Sello *Asistió*, sin botones de editar ni cancelar |
+| 55 | Revisar el catálogo del evento del caso 1 | Los cupos no cambian: `ASISTIO` sigue ocupando su cupo y WF07 no lo reasigna |
